@@ -2,16 +2,18 @@
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
+    <LangVersion>8</LangVersion>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{E9A5F211-DDA8-4E4E-8157-D7808404E775}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>GasStations</RootNamespace>
     <AssemblyName>GasStations</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -48,6 +50,7 @@
     <Compile Include="FuelContainer.cs" />
     <Compile Include="GasolineTanker.cs" />
     <Compile Include="GasStation.cs" />
+    <Compile Include="NewArchitecture\IPetrolStation.cs" />
     <Compile Include="OrderedFuel.cs" />
     <Compile Include="GasStationSystem.cs" />
     <Compile Include="IWaiter.cs" />
