@@ -8,7 +8,7 @@ namespace GasStations
 {
     public static class GasStationSystem
     {
-        public readonly static Random Random = new Random();
+        public readonly static Random Random = new Random(0);
 
         public readonly static List<Fuel> FuelTypes = new List<Fuel>();
 
