@@ -14,6 +14,11 @@ namespace GasStations
 
     public class GasStation : IWaiter
     {
+        private Dictionary<FuelType, float> _fuelPrices;
+
+        public IReadOnlyDictionary<FuelType, float> FuelPrices => _fuelPrices;
+
+        #region ToRefactor
         #region Statistics
         public float Revenue { get; private set; }
         public int TotalOrders => TotalCarOrders + TotalTruckOrders;
@@ -27,7 +32,7 @@ namespace GasStations
         public int GasolineTankersCalls { get; private set; }
         #endregion
 
-        public readonly Dictionary<Fuel, FuelContainer> AvailableFuel = new Dictionary<Fuel, FuelContainer>();
+        public readonly Dictionary<Fuel, VolumeContainer> AvailableFuel = new Dictionary<Fuel, VolumeContainer>();
         public readonly int ScheduleRefillInterval;
         public readonly int CriticalFuelLevel;
         public readonly StationType StationType;
@@ -39,8 +44,9 @@ namespace GasStations
         public int TicksPassed { get; private set; } = 0;
         public event Action<GasStation> ScheduleRefillIntervalPassed;
         public event Action<GasStation, Fuel> CriticalFuelLevelReached;
+        #endregion
 
-        public GasStation(StationType stationType, Dictionary<Fuel, FuelContainer> availableFuel, int refillInterval = 24 * 60, int criticalFuelLevel = 1000)
+        public GasStation(StationType stationType, Dictionary<Fuel, VolumeContainer> availableFuel, int refillInterval = 24 * 60, int criticalFuelLevel = 1000)
         {
             StationType = stationType;
             ScheduleRefillInterval = refillInterval;
@@ -133,15 +139,15 @@ namespace GasStations
         {
             if (order.TicksUntilOrderAppear > 0) throw new InvalidOperationException();
             var requestedFuel = order.GetRequestedFuel(AvailableFuel);
-            var requestedVolume = order.GetRequestedVolume(AvailableFuel[requestedFuel].CurrentVolume);
-            AvailableFuel[requestedFuel].Take(requestedVolume);
+            var requestedVolume = order.GetRequestedVolume(AvailableFuel[requestedFuel].FilledVolume);
+            AvailableFuel[requestedFuel].Consume(requestedVolume);
             orderCost = requestedVolume * requestedFuel.Cost;
             CheckCriticalFuelLevel(requestedFuel);
         }
 
         private void CheckCriticalFuelLevel(Fuel fuelToCheck)
         {
-            if (AvailableFuel[fuelToCheck].CurrentVolume <= CriticalFuelLevel)
+            if (AvailableFuel[fuelToCheck].FilledVolume <= CriticalFuelLevel)
                 CriticalFuelLevelReached?.Invoke(this, fuelToCheck);
         }
     }

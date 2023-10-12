@@ -10,33 +10,19 @@ namespace GasStations
     {
         public event Action OrderAppeared;
         public readonly int OrderAppearTime;
-        private int ticksUntilOrderAppear;
-        public int TicksUntilOrderAppear
-        {
-            get => ticksUntilOrderAppear;
-            set
-            {
-                ticksUntilOrderAppear = value;
-                if (value == 0)
-                {
-                    OrderAppeared?.Invoke();
-                }
-            }
-        }
-
-        public ClientOrder()
-        {
-            OrderAppearTime = GetInterval();
-            TicksUntilOrderAppear = OrderAppearTime;
-        }
+        public int TicksUntilOrderAppear { get; protected set; }
 
         public abstract int GetInterval();
-        public abstract Fuel GetRequestedFuel(Dictionary<Fuel, FuelContainer> availableFuel);
+        public abstract Fuel GetRequestedFuel(Dictionary<Fuel, VolumeContainer> availableFuel);
         public abstract int GetRequestedVolume(int maximumAvailableVolume);
 
         public void WaitOneTick()
         {
             TicksUntilOrderAppear--;
+            if (TicksUntilOrderAppear == 0)
+            {
+                OrderAppeared?.Invoke();
+            }
         }
     }
 
@@ -48,7 +34,7 @@ namespace GasStations
 
         public override int GetInterval() => interval;
 
-        public override Fuel GetRequestedFuel(Dictionary<Fuel, FuelContainer> availableFuel)
+        public override Fuel GetRequestedFuel(Dictionary<Fuel, VolumeContainer> availableFuel)
         {
             if (fuelType != null)
                 return fuelType;
@@ -74,7 +60,7 @@ namespace GasStations
 
         public override int GetInterval() => interval;
 
-        public override Fuel GetRequestedFuel(Dictionary<Fuel, FuelContainer> availableFuel)
+        public override Fuel GetRequestedFuel(Dictionary<Fuel, VolumeContainer> availableFuel)
         {
             if (fuelType != null)
                 return fuelType;

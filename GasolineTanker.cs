@@ -15,7 +15,7 @@ namespace GasStations
         public int? ArrivalTime { get; private set; }
         public int DrivesCount { get; private set; }
         public GasStation CurrentStation { get; private set; }
-        public readonly HashSet<OrderedFuel> LoadedFuel = new HashSet<OrderedFuel>(); //Count = 2 or 3
+        public readonly List<OrderedFuel> LoadedFuel = new(); //Count = 2 or 3
         public readonly int TanksCount;
         public int EmptyTanksCount => TanksCount - LoadedFuel.Count;
         public event Action<GasStation> Arrived;
@@ -82,15 +82,14 @@ namespace GasStations
             DriveToStation(LoadedFuel.First().OwnerStation);
         }
 
-        public void OrderFuel(GasStation orderOwner, Fuel fuelType, out bool isSuccessful)
+        public bool OrderFuel(GasStation orderOwner, Fuel fuelType)
         {
             if (!IsBusy && EmptyTanksCount > 0)
             {
                 LoadedFuel.Add(new OrderedFuel(orderOwner, fuelType));
-                isSuccessful = true;
-                return;
+                return true;
             }
-            isSuccessful = false;
+            return false;
         }
 
         private void DriveToStation(GasStation station)

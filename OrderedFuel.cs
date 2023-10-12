@@ -10,6 +10,7 @@ namespace GasStations
     {
         public readonly GasStation OwnerStation;
         public readonly Fuel FuelType;
+        //Volume = 6000
 
         public OrderedFuel(GasStation owner, Fuel fuelType)
         {

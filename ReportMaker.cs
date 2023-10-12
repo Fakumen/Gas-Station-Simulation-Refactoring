@@ -79,7 +79,7 @@ namespace GasStations
                 foreach (var f in station.AvailableFuel)
                 {
                     var container = f.Value;
-                    var fuelInfo = $"[\"{f.Key.FuelTypeName}\": {container.CurrentVolume}{"(+" + container.ReservedVolume + ")"}]";
+                    var fuelInfo = $"[\"{f.Key.FuelTypeName}\": {container.FilledVolume}{"(+" + container.ReservedVolume + ")"}]";
                     Console.ForegroundColor = ConsoleColor.Green;
                     Console.Write($"{fuelInfo, -22}");
                     Console.ForegroundColor = ConsoleColor.Gray;

@@ -47,12 +47,25 @@
   <ItemGroup>
     <Compile Include="ClientOrder.cs" />
     <Compile Include="Fuel.cs" />
-    <Compile Include="FuelContainer.cs" />
+    <Compile Include="NewArchitecture\Infrastructure\EnumMask.cs" />
+    <Compile Include="VolumeContainer.cs" />
     <Compile Include="GasolineTanker.cs" />
     <Compile Include="GasStation.cs" />
+    <Compile Include="NewArchitecture\FuelTankers\FuelTanker.cs" />
+    <Compile Include="NewArchitecture\Infrastructure\EnumerableExtensions.cs" />
+    <Compile Include="NewArchitecture\Infrastructure\EnumExtensions.cs" />
+    <Compile Include="NewArchitecture\Orders\OrderGenerator.cs" />
+    <Compile Include="NewArchitecture\Orders\ClientParametersGenerator.cs" />
+    <Compile Include="NewArchitecture\PetrolNetworkSimulation.cs" />
+    <Compile Include="NewArchitecture\FuelTankers\FuelTankerCondition.cs" />
+    <Compile Include="NewArchitecture\FuelTankers\FuelTankersManager.cs" />
+    <Compile Include="NewArchitecture\SimulationParameters.cs" />
+    <Compile Include="ToRemove\FuelVolume.cs" />
+    <Compile Include="NewArchitecture\Orders\ClientType.cs" />
     <Compile Include="NewArchitecture\FuelType.cs" />
     <Compile Include="NewArchitecture\IPetrolStation.cs" />
-    <Compile Include="NewArchitecture\ClientOrderInfo.cs" />
+    <Compile Include="NewArchitecture\Orders\ClientOrderInfo.cs" />
+    <Compile Include="NewArchitecture\Orders\ServedOrder.cs" />
     <Compile Include="OrderedFuel.cs" />
     <Compile Include="GasStationSystem.cs" />
     <Compile Include="IWaiter.cs" />
