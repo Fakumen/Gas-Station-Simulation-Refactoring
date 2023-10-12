@@ -51,8 +51,10 @@
     <Compile Include="GasolineTanker.cs" />
     <Compile Include="GasStation.cs" />
     <Compile Include="NewArchitecture\FuelType.cs" />
-    <Compile Include="NewArchitecture\IPetrolStation.cs" />
-    <Compile Include="NewArchitecture\ClientOrderInfo.cs" />
+    <Compile Include="NewArchitecture\Infrastructure\EnumerableExtensions.cs" />
+    <Compile Include="NewArchitecture\Infrastructure\EnumExtensions.cs" />
+    <Compile Include="NewArchitecture\Infrastructure\EnumMask.cs" />
+    <Compile Include="NewArchitecture\Orders\ClientType.cs" />
     <Compile Include="OrderedFuel.cs" />
     <Compile Include="GasStationSystem.cs" />
     <Compile Include="IWaiter.cs" />
