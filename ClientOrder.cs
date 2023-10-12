@@ -6,95 +6,62 @@ using System.Threading.Tasks;
 
 namespace GasStations
 {
-    public abstract class ClientOrder : IWaiter
+    public class ClientOrder : IWaiter
     {
-        public event Action OrderAppeared;
-        public readonly int OrderAppearTime;
+        private FuelType _fuelType;
+        private int _appearInterval;
+        private int _requestedVolume;
         private int ticksUntilOrderAppear;
+
+        private Func<Random, IReadOnlyDictionary<FuelType, FuelContainer>, FuelType> _fuelTypeGenerator;
+
+        public ClientType ClientType { get; }
+        public int OrderAppearInterval => _appearInterval;
         public int TicksUntilOrderAppear
         {
             get => ticksUntilOrderAppear;
             set
             {
                 ticksUntilOrderAppear = value;
+                if (value < 0)
+                    throw new ArgumentOutOfRangeException();
                 if (value == 0)
                 {
-                    OrderAppeared?.Invoke();
+                    OrderAppeared?.Invoke(this);
                 }
             }
         }
 
-        public ClientOrder()
+        public ClientOrder(
+            ClientType clientType, 
+            Func<Random, int> appearIntervalGenerator,
+            Func<Random, int> requestedFuelVolumeGenerator,
+            Func<Random, IReadOnlyDictionary<FuelType, FuelContainer>, FuelType> fuelTypeGenerator)//availableFuel
         {
-            OrderAppearTime = GetInterval();
-            TicksUntilOrderAppear = OrderAppearTime;
+            ClientType = clientType;
+            var randomizer = GasStationSystem.Random;
+            _appearInterval = appearIntervalGenerator(randomizer);
+            _requestedVolume = requestedFuelVolumeGenerator(randomizer);
+            _fuelTypeGenerator = fuelTypeGenerator;
+            TicksUntilOrderAppear = OrderAppearInterval;
         }
 
-        public abstract int GetInterval();
-        public abstract FuelType GetRequestedFuel(Dictionary<FuelType, FuelContainer> availableFuel);
-        public abstract int GetRequestedVolume(int maximumAvailableVolume);
+        public event Action<ClientOrder> OrderAppeared;
+
+        public FuelType GetRequestedFuel(IReadOnlyDictionary<FuelType, FuelContainer> availableFuel)
+        {
+            if (_fuelType != FuelType.None)
+                return _fuelType;
+            _fuelType = _fuelTypeGenerator(GasStationSystem.Random, availableFuel);
+            return _fuelType;
+        }
+
+        public int GetRequestedVolume(int maximumAvailableVolume)
+            => Math.Min(_requestedVolume, maximumAvailableVolume);
 
         public void WaitOneTick()
         {
             TicksUntilOrderAppear--;
-        }
-    }
-
-    public class CarClientOrder : ClientOrder
-    {
-        private readonly int interval = GasStationSystem.Random.Next(1, 6);
-        private FuelType fuelType;
-        private readonly int requestedVolume = GasStationSystem.Random.Next(10, 51);
-
-        public override int GetInterval() => interval;
-
-        public override FuelType GetRequestedFuel(Dictionary<FuelType, FuelContainer> availableFuel)
-        {
-            if (fuelType != FuelType.None)
-                return fuelType;
-            var fuelCollection = availableFuel.Keys;
-            var count = fuelCollection.Count;
-            var selectedIndex = GasStationSystem.Random.Next(count);
-            var selectedFuel = fuelCollection.Skip(selectedIndex).First();
-            fuelType = selectedFuel;
-            return fuelType;
-        }
-
-        public override int GetRequestedVolume(int maximumAvailableVolume)
-        {
-            return Math.Min(requestedVolume, maximumAvailableVolume);
-        }
-    }
-
-    public class TruckClientOrder : ClientOrder
-    {
-        private readonly int interval = GasStationSystem.Random.Next(1, 13);
-        private FuelType fuelType;
-        private readonly int requestedVolume = GasStationSystem.Random.Next(30, 301);
-
-        public override int GetInterval() => interval;
-
-        public override FuelType GetRequestedFuel(Dictionary<FuelType, FuelContainer> availableFuel)
-        {
-            if (fuelType != FuelType.None)
-                return fuelType;
-            var fuelCollection = availableFuel.Keys;
-            if (fuelCollection.Any(f => f == FuelType.Diesel))
-            {
-                var randomVal = GasStationSystem.Random.Next(2);
-                if (randomVal == 0)
-                    fuelType = fuelCollection.Single(f => f == FuelType.Petrol92);
-                else
-                    fuelType = fuelCollection.Single(f => f == FuelType.Diesel);
-                return fuelType;
-            }
-            fuelType = fuelCollection.Single(f => f == FuelType.Petrol92);
-            return fuelType;
-        }
-
-        public override int GetRequestedVolume(int maximumAvailableVolume)
-        {
-            return Math.Min(requestedVolume, maximumAvailableVolume);
         }
     }
 }

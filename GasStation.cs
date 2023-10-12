@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GasStations.Infrastructure;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,22 +17,20 @@ namespace GasStations
     {
         private readonly Dictionary<FuelType, float> _fuelPrices;
         private readonly Dictionary<FuelType, FuelContainer> _availableFuel;
-
-        private CarClientOrder _currentCarOrder;
-        private TruckClientOrder _currentTruckOrder;
+        private readonly Dictionary<ClientType, ClientOrder> _currentClientOrders = new();
         private int _ticksPassed = 0;
 
         #region Statistics
         public float Revenue { get; private set; }
-        public int TotalOrders => TotalCarOrders + TotalTruckOrders;
-        public int TotalCarOrders { get; private set; }
-        public int TotalTruckOrders { get; private set; }
-        public int ServedClients => ServedCarClients + ServedTruckClients;
-        public int ServedCarClients { get; private set; }
-        public int ServedTruckClients { get; private set; }
-        public int CarOrdersIntervalSum { get; private set; }
-        public int TruckOrdersIntervalSum { get; private set; }
+        public int TotalOrders => TotalOrdersByClientType.Sum(kv => kv.Value);
+        public int ServedClients => ServedOrdersByClientType.Sum(kv => kv.Value);
         public int GasolineTankersCalls { get; private set; }
+        public Dictionary<ClientType, int> OrdersIntervalSum
+            = EnumExtensions.GetValues<ClientType>().ToDictionary(c => c, c => 0);
+        public Dictionary<ClientType, int> TotalOrdersByClientType
+            = EnumExtensions.GetValues<ClientType>().ToDictionary(c => c, c => 0);
+        public Dictionary<ClientType, int> ServedOrdersByClientType
+            = EnumExtensions.GetValues<ClientType>().ToDictionary(c => c, c => 0);
         #endregion
 
         public int ScheduleRefillInterval { get; }
@@ -41,8 +40,10 @@ namespace GasStations
         public bool IsWaitingForGasolineTanker => _availableFuel.Any(e => e.Value.ReservedVolume > 0);
         public bool IsRequireGasolineTanker
             => _availableFuel.Any(e => e.Value.EmptyUnreservedSpace >= GasolineTanker.TankCapacity);
-        public bool IsExpectingCarOrder => _currentCarOrder != null;
-        public bool IsExpectingTruckOrder => _currentTruckOrder != null;
+        public bool IsExpectingOrder(ClientType clientType) 
+            => _currentClientOrders.ContainsKey(clientType) && _currentClientOrders[clientType] != null;
+        //public bool IsExpectingCarOrder => _currentCarOrder != null;
+        //public bool IsExpectingTruckOrder => _currentTruckOrder != null;
 
         public IReadOnlyDictionary<FuelType, FuelContainer> AvailableFuel => _availableFuel;
 
@@ -88,8 +89,10 @@ namespace GasStations
         {
             if (_ticksPassed % ScheduleRefillInterval == 0 && _ticksPassed != 0)
                 ScheduleRefillIntervalPassed?.Invoke(this);
-            _currentCarOrder.WaitOneTick();
-            _currentTruckOrder.WaitOneTick();
+            foreach (var order in _currentClientOrders.Values.ToArray())
+            {
+                order.WaitOneTick();
+            }
             _ticksPassed++;
         }
 
@@ -109,46 +112,37 @@ namespace GasStations
             _availableFuel[fuelToRefill].Fill(amount);
         }
 
-        public void AddOrderInQueue(CarClientOrder order)
+        public void AddOrderInQueue(ClientOrder order)
         {
-            if (_currentCarOrder != null) throw new InvalidOperationException();
-            _currentCarOrder = order;
-            CarOrdersIntervalSum += order.OrderAppearTime;
-            TotalCarOrders++;
-            order.OrderAppeared += OnCarOrderAppeared;
-        }
-        public void AddOrderInQueue(TruckClientOrder order)
-        {
-            if (_currentTruckOrder != null) throw new InvalidOperationException();
-            _currentTruckOrder = order;
-            TruckOrdersIntervalSum += order.OrderAppearTime;
-            TotalTruckOrders++;
-            order.OrderAppeared += OnTruckOrderAppeared;
+            var client = order.ClientType;
+
+            if (!_currentClientOrders.ContainsKey(client))
+                _currentClientOrders.Add(client, null);
+
+            if (_currentClientOrders[client] != null)
+                throw new InvalidOperationException();
+            _currentClientOrders[client] = order;
+            OrdersIntervalSum[client] += order.OrderAppearInterval;
+            TotalOrdersByClientType[client]++;
+            order.OrderAppeared += OnOrderAppeared;
         }
 
-        private void OnCarOrderAppeared()
+        private void OnOrderAppeared(ClientOrder order)
         {
-            _currentCarOrder.OrderAppeared -= OnCarOrderAppeared;
-            ServeOrder(_currentCarOrder, out var cost);
-            _currentCarOrder = null;
+            var client = order.ClientType;
+            var currentOrder = _currentClientOrders[client];
+            if (currentOrder != order)
+                throw new InvalidProgramException();
+            currentOrder.OrderAppeared -= OnOrderAppeared;
+            ServeOrder(currentOrder, out var cost);
+            _currentClientOrders[client] = null;
             Revenue += cost;
             if (cost > 0)
-                ServedCarClients++;
-        }
-
-        private void OnTruckOrderAppeared()
-        {
-            _currentTruckOrder.OrderAppeared -= OnTruckOrderAppeared;
-            ServeOrder(_currentTruckOrder, out var cost);
-            _currentTruckOrder = null;
-            Revenue += cost;
-            if (cost > 0)
-                ServedTruckClients++;
+                ServedOrdersByClientType[client]++;
         }
 
         private void ServeOrder(ClientOrder order, out float orderCost)
         {
-            if (order.TicksUntilOrderAppear > 0) throw new InvalidOperationException();
             var requestedFuel = order.GetRequestedFuel(_availableFuel);
             var requestedVolume = order.GetRequestedVolume(_availableFuel[requestedFuel].CurrentVolume);
             _availableFuel[requestedFuel].Take(requestedVolume);

@@ -9,7 +9,7 @@ namespace GasStations.Infrastructure
         public static T TakeRandom<T>(this IEnumerable<T> collection, Random randomizer)
         {
             var list = collection.ToList();
-            var randomIndex = randomizer.Next(0, list.Count);
+            var randomIndex = randomizer.Next(list.Count);
             return list[randomIndex];
         }
     }

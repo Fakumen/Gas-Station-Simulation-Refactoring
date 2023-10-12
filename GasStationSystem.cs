@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GasStations.Infrastructure;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,6 +23,7 @@ namespace GasStations
 
         public IReadOnlyList<GasStation> StationaryGS => _stationaryGS;
         public IReadOnlyList<GasStation> MiniGS => _miniGS;
+        public IReadOnlyList<GasStation> GasStations => StationaryGS.Concat(MiniGS).ToList();
         public IReadOnlyList<GasolineTanker> GasolineTankers => _gasolineTankers;
         public IEnumerable<GasolineTanker> FreeGasolineTankers => GasolineTankers.Where(t => !t.IsBusy && t.EmptyTanksCount > 0);
 
@@ -133,14 +135,30 @@ namespace GasStations
         {
             foreach (var station in StationaryGS.Concat(MiniGS))
             {
-                if (!station.IsExpectingCarOrder)
+                foreach (var clientType in EnumExtensions.GetValues<ClientType>())
                 {
-                    var newOrder = new CarClientOrder();
-                    station.AddOrderInQueue(newOrder);
-                }
-                if (!station.IsExpectingTruckOrder)
-                {
-                    var newOrder = new TruckClientOrder();
+                    if (station.IsExpectingOrder(clientType))
+                        continue;
+                    var newOrder = new ClientOrder(
+                        clientType,
+                        clientType switch
+                        {
+                            ClientType.Car => r => r.Next(1, 6),
+                            ClientType.Truck => r => r.Next(1, 13),
+                            _ => throw new NotImplementedException(),
+                        },
+                        clientType switch
+                        {
+                            ClientType.Car => r => r.Next(10, 51),
+                            ClientType.Truck => r => r.Next(30, 301),
+                            _ => throw new NotImplementedException(),
+                        },
+                        clientType switch
+                        {
+                            ClientType.Car => (r, f) => f.Keys.TakeRandom(r),
+                            ClientType.Truck => TruckFuelSelector,
+                            _ => throw new NotImplementedException(),
+                        });
                     station.AddOrderInQueue(newOrder);
                 }
                 station.WaitOneTick();
@@ -152,6 +170,20 @@ namespace GasStations
                 gasTanker.WaitOneTick();
                 if (!gasTanker.IsBusy && gasTanker.LoadedFuel.Count > 0)
                     gasTanker.StartDelivery();
+            }
+
+            FuelType TruckFuelSelector(
+                Random randomizer, IReadOnlyDictionary<FuelType, FuelContainer> availableFuel)
+            {
+                var fuelForTrucks = availableFuel.Keys
+                    .Where(f => f == FuelType.Petrol92 || f == FuelType.Diesel)
+                    .ToArray();
+                if (fuelForTrucks.Any(f => f == FuelType.Diesel))
+                {
+                    return fuelForTrucks
+                        .TakeRandom(randomizer);
+                }
+                return fuelForTrucks.Single(f => f == FuelType.Petrol92);
             }
         }
 

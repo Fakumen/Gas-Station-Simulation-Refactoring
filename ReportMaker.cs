@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GasStations.Infrastructure;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -28,17 +29,22 @@ namespace GasStations
 
         public static void ClientOrdersAverageIntervalReport(GasStationSystem stationsNetwork)
         {
-            var carOrderIntervalSum = stationsNetwork.StationaryGS.Sum(s => s.CarOrdersIntervalSum) + stationsNetwork.MiniGS.Sum(s => s.CarOrdersIntervalSum);
-            var truckOrderIntervalSum = stationsNetwork.StationaryGS.Sum(s => s.TruckOrdersIntervalSum) + stationsNetwork.MiniGS.Sum(s => s.TruckOrdersIntervalSum);
-            var carOrdersCount = stationsNetwork.StationaryGS.Sum(s => s.TotalCarOrders) + stationsNetwork.MiniGS.Sum(s => s.TotalCarOrders);
-            var truckOrdersCount = stationsNetwork.StationaryGS.Sum(s => s.TotalTruckOrders) + stationsNetwork.MiniGS.Sum(s => s.TotalTruckOrders);
-            Console.WriteLine($"Среднее время ожидания нового заказа: Для автомобилей: {(float)carOrderIntervalSum / carOrdersCount}(минут). Для грузовиков: {(float)truckOrderIntervalSum / truckOrdersCount}(минут).");
+            var avgOrderInterval = new Dictionary<ClientType, float>();
+            foreach (var client in EnumExtensions.GetValues<ClientType>())
+            {
+                avgOrderInterval[client] = stationsNetwork.GasStations.Sum(s => s.OrdersIntervalSum[client])
+                    / (float)stationsNetwork.GasStations.Sum(s => s.TotalOrdersByClientType[client]);
+                var carOrderIntervalSum = stationsNetwork.GasStations.Sum(s => s.OrdersIntervalSum[client]);
+            }
+            
+            Console.WriteLine(
+                $"Среднее время ожидания нового заказа: Для автомобилей: {avgOrderInterval[ClientType.Car]}(минут). Для грузовиков: {avgOrderInterval[ClientType.Truck]}(минут).");
         }
 
         public static void GSClientsRevenueReport(GasStationSystem stationsNetwork)
         {
-            var stationaryGSOrdersCount = stationsNetwork.StationaryGS.Sum(s => s.TotalCarOrders) + stationsNetwork.StationaryGS.Sum(s => s.TotalTruckOrders);
-            var miniGSTotalOrdersCount = stationsNetwork.MiniGS.Sum(s => s.TotalCarOrders) + stationsNetwork.MiniGS.Sum(s => s.TotalTruckOrders);
+            var stationaryGSOrdersCount = stationsNetwork.StationaryGS.Sum(s => s.TotalOrders);
+            var miniGSTotalOrdersCount = stationsNetwork.MiniGS.Sum(s => s.TotalOrders);
             var totalStationaryGSRevenue = stationsNetwork.StationaryGS.Sum(s => s.Revenue);
             var totalMiniGSRevenue = stationsNetwork.MiniGS.Sum(s => s.Revenue);
             var stationaryGSServedClients = stationsNetwork.StationaryGS.Sum(s => s.ServedClients);
