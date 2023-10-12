@@ -6,81 +6,86 @@ using System.Threading.Tasks;
 
 namespace GasStations
 {
-    public static class GasStationSystem
+    public class GasStationSystem
     {
-        public readonly static Random Random = new Random(0);
-
-        public readonly static Dictionary<FuelType, float> FuelPrices = new();
-
-        public readonly static List<GasStation> StationaryGS = new List<GasStation>();
-        public readonly static List<GasStation> MiniGS = new List<GasStation>();
-        public readonly static List<GasolineTanker> GasolineTankers = new List<GasolineTanker>();
-        public static List<OrderedFuel> TotalOrdersInCurrentTick = new List<OrderedFuel>();
-        public static IEnumerable<GasolineTanker> FreeGasolineTankers => GasolineTankers.Where(t => !t.IsBusy && t.EmptyTanksCount > 0);
-        public static IEnumerable<GasolineTanker> GasolineTankersWaitingDeliveryStart => GasolineTankers.Where(t => !t.IsBusy && t.EmptyTanksCount < t.TanksCount);
-
-        private static void Initialize()
+        private readonly List<OrderedFuel> _totalOrdersInCurrentTick = new();
+        private readonly List<GasStation> _stationaryGS = new();
+        private readonly List<GasStation> _miniGS = new();
+        private readonly List<GasolineTanker> _gasolineTankers = new();
+        private readonly Dictionary<FuelType, float> _fuelPrices = new()
         {
-            FuelPrices.Add(FuelType.Petrol92, 45.6f);
-            FuelPrices.Add(FuelType.Petrol95, 48.2f);
-            FuelPrices.Add(FuelType.Petrol98, 50.3f);
-            FuelPrices.Add(FuelType.Diesel, 51.5f);
+            { FuelType.Petrol92, 45.6f },
+            { FuelType.Petrol95, 48.2f },
+            { FuelType.Petrol98, 50.3f },
+            { FuelType.Diesel, 51.5f }
+        };
 
+        public IReadOnlyList<GasStation> StationaryGS => _stationaryGS;
+        public IReadOnlyList<GasStation> MiniGS => _miniGS;
+        public IReadOnlyList<GasolineTanker> GasolineTankers => _gasolineTankers;
+        public IEnumerable<GasolineTanker> FreeGasolineTankers => GasolineTankers.Where(t => !t.IsBusy && t.EmptyTanksCount > 0);
+
+
+        public readonly static Random Random = new(0);//TODO: Move to Simulation parameters
+
+
+        private void Initialize()
+        {
             for (var i = 0; i < 14; i++)
             {
-                var avFuel = new Dictionary<FuelType, FuelContainer>
+                var avFuel = new Dictionary<FuelType, int>
                 {
-                    { FuelType.Petrol92, new FuelContainer(30000) },
-                    { FuelType.Petrol95, new FuelContainer(16000) },
-                    { FuelType.Petrol98, new FuelContainer(16000) },
-                    { FuelType.Diesel, new FuelContainer(30000) }
+                    { FuelType.Petrol92, 30000 },
+                    { FuelType.Petrol95, 16000 },
+                    { FuelType.Petrol98, 16000 },
+                    { FuelType.Diesel, 30000 }
                 };
-                var station = new GasStation(StationType.Stationary, FuelPrices, avFuel);
-                StationaryGS.Add(station);
+                var station = new GasStation(StationType.Stationary, _fuelPrices, avFuel);
+                _stationaryGS.Add(station);
                 station.CriticalFuelLevelReached += OnCriticalFuelLevelReached;
                 station.ScheduleRefillIntervalPassed += OnScheduleRefillIntervalPassed;
             }
 
             for (var i = 0; i < 16; i++)
             {
-                var avFuel = new Dictionary<FuelType, FuelContainer>
+                var avFuel = new Dictionary<FuelType, int>
                 {
-                    { FuelType.Petrol92, new FuelContainer(16000) },//92
-                    { FuelType.Petrol95, new FuelContainer(15000) } //95
+                    { FuelType.Petrol92, 16000 },
+                    { FuelType.Petrol95, 15000 }
                 };
-                var station = new GasStation(StationType.Mini, FuelPrices, avFuel);
-                MiniGS.Add(station);
+                var station = new GasStation(StationType.Mini, _fuelPrices, avFuel);
+                _miniGS.Add(station);
                 station.CriticalFuelLevelReached += OnCriticalFuelLevelReached;
                 station.ScheduleRefillIntervalPassed += OnScheduleRefillIntervalPassed;
             }
         }
 
-        private static void OnCriticalFuelLevelReached(GasStation station, FuelType criticalLevelFuel)
+        private void OnCriticalFuelLevelReached(GasStation station, FuelType criticalLevelFuel)
         {
             if (station.IsRequireGasolineTanker)
             {
                 foreach (var fuel in station.GetFuelToRefillList())
                 {
-                    TotalOrdersInCurrentTick.Add(new OrderedFuel(station, fuel));
+                    _totalOrdersInCurrentTick.Add(new OrderedFuel(station, fuel));
                 }
                 station.ConfirmGasolineOrder();
             }
         }
 
-        private static void OnScheduleRefillIntervalPassed(GasStation station)
+        private void OnScheduleRefillIntervalPassed(GasStation station)
         {
             
             if (station.IsRequireGasolineTanker)
             {
                 foreach (var fuel in station.GetFuelToRefillList())
                 {
-                    TotalOrdersInCurrentTick.Add(new OrderedFuel(station, fuel));
+                    _totalOrdersInCurrentTick.Add(new OrderedFuel(station, fuel));
                 }
                 station.ConfirmGasolineOrder();
             }
         }
 
-        public static void OrderGasolineTankers(List<OrderedFuel> orderedFuel)
+        public void OrderGasolineTankers(List<OrderedFuel> orderedFuel)
         {
             var leftOrderedFuel = orderedFuel.Count;
             foreach (var fuel in orderedFuel)
@@ -100,7 +105,7 @@ namespace GasStations
                     else if (fuel.OwnerStation.StationType == StationType.Mini)
                         tanksCount = 2;
                     leftOrderedFuel -= tanksCount;
-                    GasolineTankers.Add(new GasolineTanker(tanksCount));
+                    _gasolineTankers.Add(new GasolineTanker(tanksCount));
                 }
                 FreeGasolineTankers.First().OrderFuel(fuel.OwnerStation, fuel.FuelType, out var success);
                 //
@@ -124,24 +129,24 @@ namespace GasStations
             }
         }
 
-        public static void HandleOneTick()
+        public void HandleOneTick()
         {
             foreach (var station in StationaryGS.Concat(MiniGS))
             {
-                if (station.CurrentCarOrder == null)
+                if (!station.IsExpectingCarOrder)
                 {
                     var newOrder = new CarClientOrder();
                     station.AddOrderInQueue(newOrder);
                 }
-                if (station.CurrentTruckOrder == null)
+                if (!station.IsExpectingTruckOrder)
                 {
                     var newOrder = new TruckClientOrder();
                     station.AddOrderInQueue(newOrder);
                 }
                 station.WaitOneTick();
             }
-            OrderGasolineTankers(TotalOrdersInCurrentTick);
-            TotalOrdersInCurrentTick.Clear();
+            OrderGasolineTankers(_totalOrdersInCurrentTick);
+            _totalOrdersInCurrentTick.Clear();
             foreach (var gasTanker in GasolineTankers)
             {
                 gasTanker.WaitOneTick();
@@ -150,7 +155,7 @@ namespace GasStations
             }
         }
 
-        public static void RunSimulation(int simulationTimeInTicks)
+        public void RunSimulation(int simulationTimeInTicks)
         {
             Initialize();
             var stations = StationaryGS.Concat(MiniGS).ToArray();
@@ -161,11 +166,11 @@ namespace GasStations
                 if ((i) % (24 * 60) == 0 && i != 0)//Отчет между сутками
                 {
                     ReportMaker.WriteDayTitle(i);
-                    ReportMaker.GSDetailedReport(stationIDs); 
+                    ReportMaker.GSDetailedReport(this, stationIDs); 
                     Console.WriteLine();
-                    ReportMaker.GSClientsRevenueReport();
-                    ReportMaker.ClientOrdersAverageIntervalReport(); 
-                    ReportMaker.TotalGasTankersReport();
+                    ReportMaker.GSClientsRevenueReport(this);
+                    ReportMaker.ClientOrdersAverageIntervalReport(this); 
+                    ReportMaker.TotalGasTankersReport(this);
                     Console.WriteLine("\n\tНажмите Enter, чтобы продолжить");
                     var input = Console.ReadLine();
                     if (input == "-debug stations")

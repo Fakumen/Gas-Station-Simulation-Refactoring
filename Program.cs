@@ -11,7 +11,8 @@ namespace GasStations
         static void Main(string[] args)
         {
             Console.SetWindowSize(220, 60);
-            GasStationSystem.RunSimulation(24 * 60 * 10);
+            var stationsNetwork = new GasStationSystem();
+            stationsNetwork.RunSimulation(24 * 60 * 10);
             while (true)
                 Console.ReadLine();
         }

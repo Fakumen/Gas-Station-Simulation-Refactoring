@@ -15,6 +15,11 @@ namespace GasStations
     public class GasStation : IWaiter
     {
         private readonly Dictionary<FuelType, float> _fuelPrices;
+        private readonly Dictionary<FuelType, FuelContainer> _availableFuel;
+
+        private CarClientOrder _currentCarOrder;
+        private TruckClientOrder _currentTruckOrder;
+        private int _ticksPassed = 0;
 
         #region Statistics
         public float Revenue { get; private set; }
@@ -29,31 +34,35 @@ namespace GasStations
         public int GasolineTankersCalls { get; private set; }
         #endregion
 
-        public readonly Dictionary<FuelType, FuelContainer> AvailableFuel = new();
-        public readonly int ScheduleRefillInterval;
-        public readonly int CriticalFuelLevel;
-        public readonly StationType StationType;
-        public bool IsWaitingForGasolineTanker => AvailableFuel.Any(e => e.Value.ReservedVolume > 0);
+        public int ScheduleRefillInterval { get; }
+        public int CriticalFuelLevel { get; }
+        public StationType StationType { get; }
+
+        public bool IsWaitingForGasolineTanker => _availableFuel.Any(e => e.Value.ReservedVolume > 0);
         public bool IsRequireGasolineTanker
-            => AvailableFuel.Any(e => e.Value.EmptyUnreservedSpace >= GasolineTanker.TankCapacity);
-        public CarClientOrder CurrentCarOrder { get; private set; }
-        public TruckClientOrder CurrentTruckOrder { get; private set; }
-        public int TicksPassed { get; private set; } = 0;
+            => _availableFuel.Any(e => e.Value.EmptyUnreservedSpace >= GasolineTanker.TankCapacity);
+        public bool IsExpectingCarOrder => _currentCarOrder != null;
+        public bool IsExpectingTruckOrder => _currentTruckOrder != null;
+
+        public IReadOnlyDictionary<FuelType, FuelContainer> AvailableFuel => _availableFuel;
+
         public event Action<GasStation> ScheduleRefillIntervalPassed;
         public event Action<GasStation, FuelType> CriticalFuelLevelReached;
 
         public GasStation(
             StationType stationType, 
             IReadOnlyDictionary<FuelType, float> fuelPrices,
-            Dictionary<FuelType, FuelContainer> availableFuel, 
+            IReadOnlyDictionary<FuelType, int> fuelSectionVolumes, 
             int refillInterval = 24 * 60, 
             int criticalFuelLevel = 1000)
         {
             StationType = stationType;
             _fuelPrices = fuelPrices.ToDictionary(kv => kv.Key, kv => kv.Value);
+            _availableFuel = fuelSectionVolumes.ToDictionary(
+                kv => kv.Key, 
+                kv => new FuelContainer(kv.Value));
             ScheduleRefillInterval = refillInterval;
             CriticalFuelLevel = criticalFuelLevel;
-            AvailableFuel = availableFuel;
         }
 
         /// <summary>
@@ -63,7 +72,7 @@ namespace GasStations
         {
             var result = new List<FuelType>();
             var gasolineTankerCapacity = GasolineTanker.TankCapacity;
-            foreach (var container in AvailableFuel)
+            foreach (var container in _availableFuel)
             {
                 var emptyUnreservedSpace = container.Value.EmptyUnreservedSpace;
                 if (emptyUnreservedSpace >= gasolineTankerCapacity)
@@ -77,11 +86,11 @@ namespace GasStations
 
         public void WaitOneTick()
         {
-            if (TicksPassed % ScheduleRefillInterval == 0 && TicksPassed != 0)
+            if (_ticksPassed % ScheduleRefillInterval == 0 && _ticksPassed != 0)
                 ScheduleRefillIntervalPassed?.Invoke(this);
-            CurrentCarOrder.WaitOneTick();
-            CurrentTruckOrder.WaitOneTick();
-            TicksPassed++;
+            _currentCarOrder.WaitOneTick();
+            _currentTruckOrder.WaitOneTick();
+            _ticksPassed++;
         }
 
         public void ConfirmGasolineOrder()
@@ -90,28 +99,28 @@ namespace GasStations
             GasolineTankersCalls++;
             foreach (var fuel in GetFuelToRefillList())
             {
-                AvailableFuel[fuel].ReserveSpace(GasolineTanker.TankCapacity);
+                _availableFuel[fuel].ReserveSpace(GasolineTanker.TankCapacity);
             }
         }
 
         public void Refill(FuelType fuelToRefill, int amount)
         {
             if (amount < 0) throw new ArgumentException();
-            AvailableFuel[fuelToRefill].Fill(amount);
+            _availableFuel[fuelToRefill].Fill(amount);
         }
 
         public void AddOrderInQueue(CarClientOrder order)
         {
-            if (CurrentCarOrder != null) throw new InvalidOperationException();
-            CurrentCarOrder = order;
+            if (_currentCarOrder != null) throw new InvalidOperationException();
+            _currentCarOrder = order;
             CarOrdersIntervalSum += order.OrderAppearTime;
             TotalCarOrders++;
             order.OrderAppeared += OnCarOrderAppeared;
         }
         public void AddOrderInQueue(TruckClientOrder order)
         {
-            if (CurrentTruckOrder != null) throw new InvalidOperationException();
-            CurrentTruckOrder = order;
+            if (_currentTruckOrder != null) throw new InvalidOperationException();
+            _currentTruckOrder = order;
             TruckOrdersIntervalSum += order.OrderAppearTime;
             TotalTruckOrders++;
             order.OrderAppeared += OnTruckOrderAppeared;
@@ -119,9 +128,9 @@ namespace GasStations
 
         private void OnCarOrderAppeared()
         {
-            CurrentCarOrder.OrderAppeared -= OnCarOrderAppeared;
-            ServeOrder(CurrentCarOrder, out var cost);
-            CurrentCarOrder = null;
+            _currentCarOrder.OrderAppeared -= OnCarOrderAppeared;
+            ServeOrder(_currentCarOrder, out var cost);
+            _currentCarOrder = null;
             Revenue += cost;
             if (cost > 0)
                 ServedCarClients++;
@@ -129,9 +138,9 @@ namespace GasStations
 
         private void OnTruckOrderAppeared()
         {
-            CurrentTruckOrder.OrderAppeared -= OnTruckOrderAppeared;
-            ServeOrder(CurrentTruckOrder, out var cost);
-            CurrentTruckOrder = null;
+            _currentTruckOrder.OrderAppeared -= OnTruckOrderAppeared;
+            ServeOrder(_currentTruckOrder, out var cost);
+            _currentTruckOrder = null;
             Revenue += cost;
             if (cost > 0)
                 ServedTruckClients++;
@@ -140,16 +149,16 @@ namespace GasStations
         private void ServeOrder(ClientOrder order, out float orderCost)
         {
             if (order.TicksUntilOrderAppear > 0) throw new InvalidOperationException();
-            var requestedFuel = order.GetRequestedFuel(AvailableFuel);
-            var requestedVolume = order.GetRequestedVolume(AvailableFuel[requestedFuel].CurrentVolume);
-            AvailableFuel[requestedFuel].Take(requestedVolume);
+            var requestedFuel = order.GetRequestedFuel(_availableFuel);
+            var requestedVolume = order.GetRequestedVolume(_availableFuel[requestedFuel].CurrentVolume);
+            _availableFuel[requestedFuel].Take(requestedVolume);
             orderCost = requestedVolume * _fuelPrices[requestedFuel];
             CheckCriticalFuelLevel(requestedFuel);
         }
 
         private void CheckCriticalFuelLevel(FuelType fuelToCheck)
         {
-            if (AvailableFuel[fuelToCheck].CurrentVolume <= CriticalFuelLevel)
+            if (_availableFuel[fuelToCheck].CurrentVolume <= CriticalFuelLevel)
                 CriticalFuelLevelReached?.Invoke(this, fuelToCheck);
         }
     }

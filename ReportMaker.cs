@@ -26,39 +26,40 @@ namespace GasStations
             Console.ForegroundColor = ConsoleColor.Gray;
         }
 
-        public static void ClientOrdersAverageIntervalReport()
+        public static void ClientOrdersAverageIntervalReport(GasStationSystem stationsNetwork)
         {
-            var carOrderIntervalSum = GasStationSystem.StationaryGS.Sum(s => s.CarOrdersIntervalSum) + GasStationSystem.MiniGS.Sum(s => s.CarOrdersIntervalSum);
-            var truckOrderIntervalSum = GasStationSystem.StationaryGS.Sum(s => s.TruckOrdersIntervalSum) + GasStationSystem.MiniGS.Sum(s => s.TruckOrdersIntervalSum);
-            var carOrdersCount = GasStationSystem.StationaryGS.Sum(s => s.TotalCarOrders) + GasStationSystem.MiniGS.Sum(s => s.TotalCarOrders);
-            var truckOrdersCount = GasStationSystem.StationaryGS.Sum(s => s.TotalTruckOrders) + GasStationSystem.MiniGS.Sum(s => s.TotalTruckOrders);
+            var carOrderIntervalSum = stationsNetwork.StationaryGS.Sum(s => s.CarOrdersIntervalSum) + stationsNetwork.MiniGS.Sum(s => s.CarOrdersIntervalSum);
+            var truckOrderIntervalSum = stationsNetwork.StationaryGS.Sum(s => s.TruckOrdersIntervalSum) + stationsNetwork.MiniGS.Sum(s => s.TruckOrdersIntervalSum);
+            var carOrdersCount = stationsNetwork.StationaryGS.Sum(s => s.TotalCarOrders) + stationsNetwork.MiniGS.Sum(s => s.TotalCarOrders);
+            var truckOrdersCount = stationsNetwork.StationaryGS.Sum(s => s.TotalTruckOrders) + stationsNetwork.MiniGS.Sum(s => s.TotalTruckOrders);
             Console.WriteLine($"Среднее время ожидания нового заказа: Для автомобилей: {(float)carOrderIntervalSum / carOrdersCount}(минут). Для грузовиков: {(float)truckOrderIntervalSum / truckOrdersCount}(минут).");
         }
 
-        public static void GSClientsRevenueReport()
+        public static void GSClientsRevenueReport(GasStationSystem stationsNetwork)
         {
-            var stationaryGSOrdersCount = GasStationSystem.StationaryGS.Sum(s => s.TotalCarOrders) + GasStationSystem.StationaryGS.Sum(s => s.TotalTruckOrders);
-            var miniGSTotalOrdersCount = GasStationSystem.MiniGS.Sum(s => s.TotalCarOrders) + GasStationSystem.MiniGS.Sum(s => s.TotalTruckOrders);
-            var totalStationaryGSRevenue = GasStationSystem.StationaryGS.Sum(s => s.Revenue);
-            var totalMiniGSRevenue = GasStationSystem.MiniGS.Sum(s => s.Revenue);
-            var stationaryGSServedClients = GasStationSystem.StationaryGS.Sum(s => s.ServedClients);
-            var miniGSServedClients = GasStationSystem.MiniGS.Sum(s => s.ServedClients);
+            var stationaryGSOrdersCount = stationsNetwork.StationaryGS.Sum(s => s.TotalCarOrders) + stationsNetwork.StationaryGS.Sum(s => s.TotalTruckOrders);
+            var miniGSTotalOrdersCount = stationsNetwork.MiniGS.Sum(s => s.TotalCarOrders) + stationsNetwork.MiniGS.Sum(s => s.TotalTruckOrders);
+            var totalStationaryGSRevenue = stationsNetwork.StationaryGS.Sum(s => s.Revenue);
+            var totalMiniGSRevenue = stationsNetwork.MiniGS.Sum(s => s.Revenue);
+            var stationaryGSServedClients = stationsNetwork.StationaryGS.Sum(s => s.ServedClients);
+            var miniGSServedClients = stationsNetwork.MiniGS.Sum(s => s.ServedClients);
             Console.WriteLine($"Обслуженных клиентов на АЗС: {stationaryGSServedClients}, на ААЗС: {miniGSServedClients}.");
             Console.WriteLine($"Необслуженных клиентов: На АЗС: {stationaryGSOrdersCount - stationaryGSServedClients}, на ААЗС: {miniGSTotalOrdersCount - miniGSServedClients}.");
             Console.WriteLine($"Выручка на АЗС: {totalStationaryGSRevenue}(руб), на ААЗС: {totalMiniGSRevenue}(руб).");
         }
 
-        public static void GSDetailedReport()
+        public static void GSDetailedReport(GasStationSystem stationsNetwork)
         {
-            var stations = GasStationSystem.StationaryGS.Concat(GasStationSystem.MiniGS);
-            GSDetailedReport(Enumerable.Range(1, stations.Count()));
+            var stations = stationsNetwork.StationaryGS.Concat(stationsNetwork.MiniGS);
+            GSDetailedReport(stationsNetwork, Enumerable.Range(1, stations.Count()));
         }
 
-        public static void GSDetailedReport(params int[] stationIDs) => GSDetailedReport(stationIDs as IEnumerable<int>);
+        public static void GSDetailedReport(GasStationSystem stationsNetwork, params int[] stationIDs)
+            => GSDetailedReport(stationsNetwork, stationIDs as IEnumerable<int>);
 
-        public static void GSDetailedReport(IEnumerable<int> stationIDS)
+        public static void GSDetailedReport(GasStationSystem stationsNetwork, IEnumerable<int> stationIDS)
         {
-            var stations = GasStationSystem.StationaryGS.Concat(GasStationSystem.MiniGS).ToArray();
+            var stations = stationsNetwork.StationaryGS.Concat(stationsNetwork.MiniGS).ToArray();
             foreach (var j in stationIDS)
             {
                 var i = j - 1;
@@ -90,9 +91,9 @@ namespace GasStations
             }
         }
 
-        public static void TotalGasTankersReport()
+        public static void TotalGasTankersReport(GasStationSystem stationsNetwork)
         {
-            var tankers = GasStationSystem.GasolineTankers;
+            var tankers = stationsNetwork.GasolineTankers;
             var tankers2 = tankers.Where(t => t.TanksCount == 2).ToArray();
             var tankers3 = tankers.Where(t => t.TanksCount == 3).ToArray();
             var tankers2TotalDrivesCount = tankers2.Sum(t => t.DrivesCount);
