@@ -14,6 +14,8 @@ namespace GasStations
 
     public class GasStation : IWaiter
     {
+        private readonly Dictionary<FuelType, float> _fuelPrices;
+
         #region Statistics
         public float Revenue { get; private set; }
         public int TotalOrders => TotalCarOrders + TotalTruckOrders;
@@ -27,7 +29,7 @@ namespace GasStations
         public int GasolineTankersCalls { get; private set; }
         #endregion
 
-        public readonly Dictionary<Fuel, FuelContainer> AvailableFuel = new Dictionary<Fuel, FuelContainer>();
+        public readonly Dictionary<FuelType, FuelContainer> AvailableFuel = new();
         public readonly int ScheduleRefillInterval;
         public readonly int CriticalFuelLevel;
         public readonly StationType StationType;
@@ -38,11 +40,17 @@ namespace GasStations
         public TruckClientOrder CurrentTruckOrder { get; private set; }
         public int TicksPassed { get; private set; } = 0;
         public event Action<GasStation> ScheduleRefillIntervalPassed;
-        public event Action<GasStation, Fuel> CriticalFuelLevelReached;
+        public event Action<GasStation, FuelType> CriticalFuelLevelReached;
 
-        public GasStation(StationType stationType, Dictionary<Fuel, FuelContainer> availableFuel, int refillInterval = 24 * 60, int criticalFuelLevel = 1000)
+        public GasStation(
+            StationType stationType, 
+            IReadOnlyDictionary<FuelType, float> fuelPrices,
+            Dictionary<FuelType, FuelContainer> availableFuel, 
+            int refillInterval = 24 * 60, 
+            int criticalFuelLevel = 1000)
         {
             StationType = stationType;
+            _fuelPrices = fuelPrices.ToDictionary(kv => kv.Key, kv => kv.Value);
             ScheduleRefillInterval = refillInterval;
             CriticalFuelLevel = criticalFuelLevel;
             AvailableFuel = availableFuel;
@@ -51,9 +59,9 @@ namespace GasStations
         /// <summary>
         /// Возвращает общий список нужного в цистернах топлива по одному элементу для каждой цистерны.
         /// </summary>
-        public List<Fuel> GetFuelToRefillList()
+        public List<FuelType> GetFuelToRefillList()
         {
-            var result = new List<Fuel>();
+            var result = new List<FuelType>();
             var gasolineTankerCapacity = GasolineTanker.TankCapacity;
             foreach (var container in AvailableFuel)
             {
@@ -86,7 +94,7 @@ namespace GasStations
             }
         }
 
-        public void Refill(Fuel fuelToRefill, int amount)
+        public void Refill(FuelType fuelToRefill, int amount)
         {
             if (amount < 0) throw new ArgumentException();
             AvailableFuel[fuelToRefill].Fill(amount);
@@ -135,11 +143,11 @@ namespace GasStations
             var requestedFuel = order.GetRequestedFuel(AvailableFuel);
             var requestedVolume = order.GetRequestedVolume(AvailableFuel[requestedFuel].CurrentVolume);
             AvailableFuel[requestedFuel].Take(requestedVolume);
-            orderCost = requestedVolume * requestedFuel.Cost;
+            orderCost = requestedVolume * _fuelPrices[requestedFuel];
             CheckCriticalFuelLevel(requestedFuel);
         }
 
-        private void CheckCriticalFuelLevel(Fuel fuelToCheck)
+        private void CheckCriticalFuelLevel(FuelType fuelToCheck)
         {
             if (AvailableFuel[fuelToCheck].CurrentVolume <= CriticalFuelLevel)
                 CriticalFuelLevelReached?.Invoke(this, fuelToCheck);

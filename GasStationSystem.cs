@@ -8,9 +8,9 @@ namespace GasStations
 {
     public static class GasStationSystem
     {
-        public readonly static Random Random = new Random();
+        public readonly static Random Random = new Random(0);
 
-        public readonly static List<Fuel> FuelTypes = new List<Fuel>();
+        public readonly static Dictionary<FuelType, float> FuelPrices = new();
 
         public readonly static List<GasStation> StationaryGS = new List<GasStation>();
         public readonly static List<GasStation> MiniGS = new List<GasStation>();
@@ -21,21 +21,21 @@ namespace GasStations
 
         private static void Initialize()
         {
-            FuelTypes.Add(new Fuel("92", 45.6f));
-            FuelTypes.Add(new Fuel("95", 48.2f));
-            FuelTypes.Add(new Fuel("98", 50.3f));
-            FuelTypes.Add(new Fuel("Дт", 51.5f));
+            FuelPrices.Add(FuelType.Petrol92, 45.6f);
+            FuelPrices.Add(FuelType.Petrol95, 48.2f);
+            FuelPrices.Add(FuelType.Petrol98, 50.3f);
+            FuelPrices.Add(FuelType.Diesel, 51.5f);
 
             for (var i = 0; i < 14; i++)
             {
-                var avFuel = new Dictionary<Fuel, FuelContainer>
+                var avFuel = new Dictionary<FuelType, FuelContainer>
                 {
-                    { FuelTypes[0], new FuelContainer(30000) },//92
-                    { FuelTypes[1], new FuelContainer(16000) },//95
-                    { FuelTypes[2], new FuelContainer(16000) },//98
-                    { FuelTypes[3], new FuelContainer(30000) } //Дт
+                    { FuelType.Petrol92, new FuelContainer(30000) },
+                    { FuelType.Petrol95, new FuelContainer(16000) },
+                    { FuelType.Petrol98, new FuelContainer(16000) },
+                    { FuelType.Diesel, new FuelContainer(30000) }
                 };
-                var station = new GasStation(StationType.Stationary, avFuel);
+                var station = new GasStation(StationType.Stationary, FuelPrices, avFuel);
                 StationaryGS.Add(station);
                 station.CriticalFuelLevelReached += OnCriticalFuelLevelReached;
                 station.ScheduleRefillIntervalPassed += OnScheduleRefillIntervalPassed;
@@ -43,19 +43,19 @@ namespace GasStations
 
             for (var i = 0; i < 16; i++)
             {
-                var avFuel = new Dictionary<Fuel, FuelContainer>
+                var avFuel = new Dictionary<FuelType, FuelContainer>
                 {
-                    { FuelTypes[0], new FuelContainer(16000) },//92
-                    { FuelTypes[1], new FuelContainer(15000) } //95
+                    { FuelType.Petrol92, new FuelContainer(16000) },//92
+                    { FuelType.Petrol95, new FuelContainer(15000) } //95
                 };
-                var station = new GasStation(StationType.Mini, avFuel);
+                var station = new GasStation(StationType.Mini, FuelPrices, avFuel);
                 MiniGS.Add(station);
                 station.CriticalFuelLevelReached += OnCriticalFuelLevelReached;
                 station.ScheduleRefillIntervalPassed += OnScheduleRefillIntervalPassed;
             }
         }
 
-        private static void OnCriticalFuelLevelReached(GasStation station, Fuel criticalLevelFuel)
+        private static void OnCriticalFuelLevelReached(GasStation station, FuelType criticalLevelFuel)
         {
             if (station.IsRequireGasolineTanker)
             {

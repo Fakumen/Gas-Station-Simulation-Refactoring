@@ -9,9 +9,9 @@ namespace GasStations
     public class OrderedFuel
     {
         public readonly GasStation OwnerStation;
-        public readonly Fuel FuelType;
+        public readonly FuelType FuelType;
 
-        public OrderedFuel(GasStation owner, Fuel fuelType)
+        public OrderedFuel(GasStation owner, FuelType fuelType)
         {
             OwnerStation = owner;
             FuelType = fuelType;

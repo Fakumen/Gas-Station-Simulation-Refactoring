@@ -82,7 +82,7 @@ namespace GasStations
             DriveToStation(LoadedFuel.First().OwnerStation);
         }
 
-        public void OrderFuel(GasStation orderOwner, Fuel fuelType, out bool isSuccessful)
+        public void OrderFuel(GasStation orderOwner, FuelType fuelType, out bool isSuccessful)
         {
             if (!IsBusy && EmptyTanksCount > 0)
             {

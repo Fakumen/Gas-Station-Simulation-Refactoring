@@ -46,7 +46,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ClientOrder.cs" />
-    <Compile Include="Fuel.cs" />
     <Compile Include="FuelContainer.cs" />
     <Compile Include="GasolineTanker.cs" />
     <Compile Include="GasStation.cs" />

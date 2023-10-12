@@ -2,7 +2,8 @@
 {
     public enum FuelType
     {
-        Petrol92,
+        None = 0,
+        Petrol92 = 1,
         Petrol95,
         Petrol98,
         Diesel
