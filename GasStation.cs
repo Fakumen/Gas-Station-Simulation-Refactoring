@@ -19,17 +19,20 @@ namespace GasStations
         private readonly Dictionary<FuelType, FuelContainer> _availableFuel;
         private readonly Dictionary<ClientType, ClientOrder> _currentClientOrders = new();
         private int _ticksPassed = 0;
+        private readonly List<ServedOrder> _servedOrders = new();
 
         #region Statistics
-        public float Revenue { get; private set; }
-        public int TotalOrders => TotalOrdersByClientType.Sum(kv => kv.Value);
-        public int ServedClients => ServedOrdersByClientType.Sum(kv => kv.Value);
+        public float Revenue => _servedOrders.Sum(o => o.OrderRevenue);
+        public int ServedClients => _servedOrders.Where(o => o.IsSuccessful).Count();
         public int GasolineTankersCalls { get; private set; }
         public Dictionary<ClientType, int> OrdersIntervalSum
             = EnumExtensions.GetValues<ClientType>().ToDictionary(c => c, c => 0);
-        public Dictionary<ClientType, int> TotalOrdersByClientType
-            = EnumExtensions.GetValues<ClientType>().ToDictionary(c => c, c => 0);
         public Dictionary<ClientType, int> ServedOrdersByClientType
+            = EnumExtensions.GetValues<ClientType>().ToDictionary(c => c, c => 0);
+
+        //TODO: Incorrect behaviour. Counts when order queued! Not Appeared!
+        public int TotalOrders => TotalOrdersByClientType.Sum(kv => kv.Value);
+        public Dictionary<ClientType, int> TotalOrdersByClientType
             = EnumExtensions.GetValues<ClientType>().ToDictionary(c => c, c => 0);
         #endregion
 
@@ -69,7 +72,7 @@ namespace GasStations
         /// <summary>
         /// Возвращает общий список нужного в цистернах топлива по одному элементу для каждой цистерны.
         /// </summary>
-        public List<FuelType> GetFuelToRefillList()
+        public FuelType[] GetFuelToRefillList()
         {
             var result = new List<FuelType>();
             var gasolineTankerCapacity = GasolineTanker.TankCapacity;
@@ -82,7 +85,7 @@ namespace GasStations
                         result.Add(container.Key);
                 }
             }
-            return result;
+            return result.ToArray();
         }
 
         public void WaitOneTick()
@@ -133,21 +136,27 @@ namespace GasStations
             var currentOrder = _currentClientOrders[client];
             if (currentOrder != order)
                 throw new InvalidProgramException();
+
             currentOrder.OrderAppeared -= OnOrderAppeared;
-            ServeOrder(currentOrder, out var cost);
+            var servedOrder = ServeOrder(currentOrder);
             _currentClientOrders[client] = null;
-            Revenue += cost;
-            if (cost > 0)
+
+            //TODO: move check to statistics
+            if (servedOrder.IsSuccessful)
                 ServedOrdersByClientType[client]++;
         }
 
-        private void ServeOrder(ClientOrder order, out float orderCost)
+        private ServedOrder ServeOrder(ClientOrder order)
         {
             var requestedFuel = order.GetRequestedFuel(_availableFuel);
-            var requestedVolume = order.GetRequestedVolume(_availableFuel[requestedFuel].CurrentVolume);
-            _availableFuel[requestedFuel].Take(requestedVolume);
-            orderCost = requestedVolume * _fuelPrices[requestedFuel];
+            var providedVolume = Math.Min(
+                order.RequestedFuelVolume, _availableFuel[requestedFuel].CurrentVolume);
+            _availableFuel[requestedFuel].Take(providedVolume);
             CheckCriticalFuelLevel(requestedFuel);
+            var servedOrder = new ServedOrder(order, providedVolume, _fuelPrices[requestedFuel]);
+            //OrderServed?.Invoke(this, servedOrder); //TODO: add event, track in statistics?
+            _servedOrders.Add(servedOrder);
+            return servedOrder;
         }
 
         private void CheckCriticalFuelLevel(FuelType fuelToCheck)

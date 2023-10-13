@@ -54,6 +54,7 @@
     <Compile Include="NewArchitecture\Infrastructure\EnumExtensions.cs" />
     <Compile Include="NewArchitecture\Infrastructure\EnumMask.cs" />
     <Compile Include="NewArchitecture\Orders\ClientType.cs" />
+    <Compile Include="NewArchitecture\Orders\ServedOrder.cs" />
     <Compile Include="OrderedFuel.cs" />
     <Compile Include="GasStationSystem.cs" />
     <Compile Include="IWaiter.cs" />
