@@ -19,39 +19,21 @@ namespace GasStations
         private readonly Dictionary<FuelType, FuelContainer> _availableFuel;
         private readonly Dictionary<ClientType, ClientOrder> _currentClientOrders = new();
         private int _ticksPassed = 0;
-        private readonly List<ServedOrder> _servedOrders = new();
-
-        #region Statistics
-        public float Revenue => _servedOrders.Sum(o => o.OrderRevenue);
-        public int ServedClients => _servedOrders.Where(o => o.IsSuccessful).Count();
-        public int GasolineTankersCalls { get; private set; }
-        public Dictionary<ClientType, int> OrdersIntervalSum
-            = EnumExtensions.GetValues<ClientType>().ToDictionary(c => c, c => 0);
-        public Dictionary<ClientType, int> ServedOrdersByClientType
-            = EnumExtensions.GetValues<ClientType>().ToDictionary(c => c, c => 0);
-
-        //TODO: Incorrect behaviour. Counts when order queued! Not Appeared!
-        public int TotalOrders => TotalOrdersByClientType.Sum(kv => kv.Value);
-        public Dictionary<ClientType, int> TotalOrdersByClientType
-            = EnumExtensions.GetValues<ClientType>().ToDictionary(c => c, c => 0);
-        #endregion
 
         public int ScheduleRefillInterval { get; }
         public int CriticalFuelLevel { get; }
         public StationType StationType { get; }
+        public IReadOnlyDictionary<FuelType, FuelContainer> AvailableFuel => _availableFuel;
 
         public bool IsWaitingForGasolineTanker => _availableFuel.Any(e => e.Value.ReservedVolume > 0);
         public bool IsRequireGasolineTanker
             => _availableFuel.Any(e => e.Value.EmptyUnreservedSpace >= GasolineTanker.TankCapacity);
-        public bool IsExpectingOrder(ClientType clientType) 
-            => _currentClientOrders.ContainsKey(clientType) && _currentClientOrders[clientType] != null;
-        //public bool IsExpectingCarOrder => _currentCarOrder != null;
-        //public bool IsExpectingTruckOrder => _currentTruckOrder != null;
-
-        public IReadOnlyDictionary<FuelType, FuelContainer> AvailableFuel => _availableFuel;
 
         public event Action<GasStation> ScheduleRefillIntervalPassed;
         public event Action<GasStation, FuelType> CriticalFuelLevelReached;
+        public event Action<GasStation, ClientOrder> OrderQueued;
+        public event Action<GasStation, ServedOrder> OrderServed;
+        public event Action<GasStation> FuelTankerCalled;
 
         public GasStation(
             StationType stationType, 
@@ -68,6 +50,9 @@ namespace GasStations
             ScheduleRefillInterval = refillInterval;
             CriticalFuelLevel = criticalFuelLevel;
         }
+
+        public bool IsExpectingOrder(ClientType clientType)
+            => _currentClientOrders.ContainsKey(clientType) && _currentClientOrders[clientType] != null;
 
         /// <summary>
         /// Возвращает общий список нужного в цистернах топлива по одному элементу для каждой цистерны.
@@ -102,7 +87,7 @@ namespace GasStations
         public void ConfirmGasolineOrder()
         {
             if (!IsRequireGasolineTanker) throw new InvalidOperationException();
-            GasolineTankersCalls++;
+            FuelTankerCalled?.Invoke(this);
             foreach (var fuel in GetFuelToRefillList())
             {
                 _availableFuel[fuel].ReserveSpace(GasolineTanker.TankCapacity);
@@ -125,9 +110,8 @@ namespace GasStations
             if (_currentClientOrders[client] != null)
                 throw new InvalidOperationException();
             _currentClientOrders[client] = order;
-            OrdersIntervalSum[client] += order.OrderAppearInterval;
-            TotalOrdersByClientType[client]++;
             order.OrderAppeared += OnOrderAppeared;
+            OrderQueued?.Invoke(this, order);
         }
 
         private void OnOrderAppeared(ClientOrder order)
@@ -140,10 +124,6 @@ namespace GasStations
             currentOrder.OrderAppeared -= OnOrderAppeared;
             var servedOrder = ServeOrder(currentOrder);
             _currentClientOrders[client] = null;
-
-            //TODO: move check to statistics
-            if (servedOrder.IsSuccessful)
-                ServedOrdersByClientType[client]++;
         }
 
         private ServedOrder ServeOrder(ClientOrder order)
@@ -154,8 +134,7 @@ namespace GasStations
             _availableFuel[requestedFuel].Take(providedVolume);
             CheckCriticalFuelLevel(requestedFuel);
             var servedOrder = new ServedOrder(order, providedVolume, _fuelPrices[requestedFuel]);
-            //OrderServed?.Invoke(this, servedOrder); //TODO: add event, track in statistics?
-            _servedOrders.Add(servedOrder);
+            OrderServed?.Invoke(this, servedOrder);
             return servedOrder;
         }
 

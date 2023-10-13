@@ -2,16 +2,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace GasStations
 {
     public class GasStationSystem
     {
         private readonly List<OrderedFuel> _totalOrdersInCurrentTick = new();
-        private readonly List<GasStation> _stationaryGS = new();
-        private readonly List<GasStation> _miniGS = new();
+        private readonly List<GasStation> _stations = new();
         private readonly List<GasolineTanker> _gasolineTankers = new();
         private readonly Dictionary<FuelType, float> _fuelPrices = new()
         {
@@ -21,19 +18,9 @@ namespace GasStations
             { FuelType.Diesel, 51.5f }
         };
 
-        public IReadOnlyList<GasStation> StationaryGS => _stationaryGS;
-        public IReadOnlyList<GasStation> MiniGS => _miniGS;
-        public IReadOnlyList<GasStation> GasStations => StationaryGS.Concat(MiniGS).ToList();
-        public IReadOnlyList<GasolineTanker> GasolineTankers => _gasolineTankers;
-        public IEnumerable<GasolineTanker> FreeGasolineTankers => GasolineTankers.Where(t => !t.IsBusy && t.EmptyTanksCount > 0);
-
-
-        public readonly static Random Random = new(0);//TODO: Move to Simulation parameters
-
-
-        private void Initialize()
+        public GasStationSystem(int stationaryStationsCount, int miniStationsCount)
         {
-            for (var i = 0; i < 14; i++)
+            for (var i = 0; i < stationaryStationsCount; i++)
             {
                 var avFuel = new Dictionary<FuelType, int>
                 {
@@ -43,12 +30,12 @@ namespace GasStations
                     { FuelType.Diesel, 30000 }
                 };
                 var station = new GasStation(StationType.Stationary, _fuelPrices, avFuel);
-                _stationaryGS.Add(station);
+                _stations.Add(station);
                 station.CriticalFuelLevelReached += OnCriticalFuelLevelReached;
                 station.ScheduleRefillIntervalPassed += OnScheduleRefillIntervalPassed;
             }
 
-            for (var i = 0; i < 16; i++)
+            for (var i = 0; i < miniStationsCount; i++)
             {
                 var avFuel = new Dictionary<FuelType, int>
                 {
@@ -56,11 +43,23 @@ namespace GasStations
                     { FuelType.Petrol95, 15000 }
                 };
                 var station = new GasStation(StationType.Mini, _fuelPrices, avFuel);
-                _miniGS.Add(station);
+                _stations.Add(station);
                 station.CriticalFuelLevelReached += OnCriticalFuelLevelReached;
                 station.ScheduleRefillIntervalPassed += OnScheduleRefillIntervalPassed;
             }
         }
+
+        public IReadOnlyList<GasStation> GasStations => _stations;
+
+        public IReadOnlyList<GasolineTanker> GasolineTankers => _gasolineTankers;
+        public IEnumerable<GasolineTanker> FreeGasolineTankers => GasolineTankers.Where(t => !t.IsBusy && t.EmptyTanksCount > 0);
+
+        //TODO: Move to Simulation parameters
+        #region Simulation Parameters
+        public readonly static Random Random = new(0);
+        public long PassedSimulationTicks { get; private set; }
+        public event Action DayPassed;
+        #endregion
 
         private void OnCriticalFuelLevelReached(GasStation station, FuelType criticalLevelFuel)
         {
@@ -131,9 +130,9 @@ namespace GasStations
             }
         }
 
-        public void HandleOneTick()
+        private void HandleOneTick()
         {
-            foreach (var station in StationaryGS.Concat(MiniGS))
+            foreach (var station in GasStations)
             {
                 foreach (var clientType in EnumExtensions.GetValues<ClientType>())
                 {
@@ -171,8 +170,9 @@ namespace GasStations
                 if (!gasTanker.IsBusy && gasTanker.LoadedFuel.Count > 0)
                     gasTanker.StartDelivery();
             }
+            PassedSimulationTicks++;
 
-            FuelType TruckFuelSelector(
+            static FuelType TruckFuelSelector(
                 Random randomizer, IReadOnlyDictionary<FuelType, FuelContainer> availableFuel)
             {
                 var fuelForTrucks = availableFuel.Keys
@@ -187,40 +187,16 @@ namespace GasStations
             }
         }
 
-        public void RunSimulation(int simulationTimeInTicks)
+        public void RunSimulation(long simulationTimeInTicks)
         {
-            Initialize();
-            var stations = StationaryGS.Concat(MiniGS).ToArray();
-            var stationIDs = Enumerable.Range(1, stations.Count());
-            for (var i = 1; i <= simulationTimeInTicks; i++)
+            for (var i = 1; i <= simulationTimeInTicks; i++)//Why it skips 1st tick?
             {
                 HandleOneTick();
                 if ((i) % (24 * 60) == 0 && i != 0)//Отчет между сутками
                 {
-                    ReportMaker.WriteDayTitle(i);
-                    ReportMaker.GSDetailedReport(this, stationIDs); 
-                    Console.WriteLine();
-                    ReportMaker.GSClientsRevenueReport(this);
-                    ReportMaker.ClientOrdersAverageIntervalReport(this); 
-                    ReportMaker.TotalGasTankersReport(this);
-                    Console.WriteLine("\n\tНажмите Enter, чтобы продолжить");
-                    var input = Console.ReadLine();
-                    if (input == "-debug stations")
-                    {
-                        Console.Write("Station IDs to debug: ");
-                        var idsInput = Console.ReadLine();
-                        if (idsInput.ToLower() == "all")
-                            stationIDs = Enumerable.Range(1, stations.Count());
-                        else
-                        {
-                            var ids = idsInput.Split().Select(s => int.Parse(s));
-                            stationIDs = ids;
-                        }
-                    }
+                    DayPassed?.Invoke();
                 }
             }
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("\n Симуляция окончена.");
         }
     }
 }
