@@ -6,7 +6,7 @@ namespace GasStations
 {
     public class GasolineTanker : IWaiter
     {
-        private int newRandomArrivalTime => GasStationSystem.Random.Next(60, 121);
+        private int newRandomArrivalTime => Simulation.Randomizer.Next(60, 121);
         public const int TankCapacity = 6000;
         public const int ReturnToBaseTime = 90;
         public const int UnloadTime = 40;
