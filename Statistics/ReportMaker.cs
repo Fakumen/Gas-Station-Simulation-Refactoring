@@ -7,18 +7,8 @@ namespace GasStations
 {
     public class ReportMaker
     {
-        //public static void TotalUnservedClientsReport()
-        //{
-        //    var stationaryGSOrdersCount = GasStationSystem.StationaryGS.Sum(s => s.TotalCarOrders) + GasStationSystem.StationaryGS.Sum(s => s.TotalTruckOrders);
-        //    var miniGSTotalOrdersCount = GasStationSystem.MiniGS.Sum(s => s.TotalCarOrders) + GasStationSystem.MiniGS.Sum(s => s.TotalTruckOrders);
-        //    var stationaryGSServedClients = GasStationSystem.StationaryGS.Sum(s => s.ServedClients);
-        //    var miniGSServedClients = GasStationSystem.MiniGS.Sum(s => s.ServedClients);
-        //    Console.WriteLine($"Необслуженных клиентов: На АЗС: {stationaryGSOrdersCount - stationaryGSServedClients}. На ААЗС: {miniGSTotalOrdersCount - miniGSServedClients}.");
-        //}
-
         public static void WriteDayTitle(long ticksPassed)
         {
-
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine("--------------------");
             Console.WriteLine(
@@ -26,7 +16,8 @@ namespace GasStations
             Console.ForegroundColor = ConsoleColor.Gray;
         }
 
-        public static void ClientOrdersAverageIntervalReport(StationsNetworkStatisticsGatherer networkStatistics)
+        public static void ClientOrdersAverageIntervalReport(
+            StationsNetworkStatisticsGatherer networkStatistics)
         {
             var clientTypes = EnumExtensions.GetValues<ClientType>();
             var avgOrderInterval = new Dictionary<ClientType, float>();
@@ -89,7 +80,6 @@ namespace GasStations
                 }
                 Console.Write($" {stationName, -20}");
                 Console.ForegroundColor = ConsoleColor.Gray;
-                //Console.Write($" \tТактов пройдено: {station.TicksPassed};");
                 Console.Write($" \tКлиентов обслуженно: {station.SuccessfullyServedClients} из {station.TotalQueuedOrders};");
                 Console.Write($" \tВызовов бензовоза: {station.FuelTankersCalls};");
                 Console.Write($"\n\tТопливо:   ");

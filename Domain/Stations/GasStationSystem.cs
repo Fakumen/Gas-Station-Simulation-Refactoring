@@ -109,24 +109,6 @@ namespace GasStations
                     _gasolineTankers.Add(new GasolineTanker(tanksCount));
                 }
                 FreeGasolineTankers.First().OrderFuel(fuel.OwnerStation, fuel.FuelType, out var success);
-                //
-                //if (fuel.OwnerStation.StationType == StationType.Mini)
-                //{
-                //    var requiredTanker = FreeGasolineTankers.Where(t => t.TanksCount < 3).FirstOrDefault();
-                //    if (requiredTanker == null)
-                //        GasolineTankers.Add(new GasolineTanker(2));
-                //    leftOrderedFuel -= 2;
-                //}
-                //else if (fuel.OwnerStation.StationType == StationType.Stationary)
-                //{
-                //    var tanksCount = leftOrderedFuel;
-                //    tanksCount = Math.Min(tanksCount, 3);
-                //    if (tanksCount < 2)
-                //        tanksCount = 2;
-                //    var requiredTanker = FreeGasolineTankers.Where(t => t.TanksCount == tanksCount).FirstOrDefault();
-                //    if (requiredTanker == null)
-                //        GasolineTankers.Add(new GasolineTanker(2));
-                //}
             }
         }
 

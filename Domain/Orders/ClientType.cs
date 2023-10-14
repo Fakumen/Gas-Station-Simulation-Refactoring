@@ -5,6 +5,6 @@
         Car,
         Truck,
         //Motorcycle,
-        //etc
+        //...
     }
 }
