@@ -16,7 +16,7 @@ namespace GasStations
             Func<Random, IReadOnlyDictionary<FuelType, FuelContainer>, FuelType> fuelTypeGenerator)//availableFuel
         {
             ClientType = clientType;
-            var randomizer = GasStationSystem.Random;
+            var randomizer = Simulation.Randomizer;
             _appearInterval = appearIntervalGenerator(randomizer);
             RequestedFuelVolume = requestedFuelVolumeGenerator(randomizer);
             _fuelTypeGenerator = fuelTypeGenerator;
@@ -34,7 +34,7 @@ namespace GasStations
         {
             if (RequestedFuel != FuelType.None)
                 return RequestedFuel;
-            RequestedFuel = _fuelTypeGenerator(GasStationSystem.Random, availableFuel);
+            RequestedFuel = _fuelTypeGenerator(Simulation.Randomizer, availableFuel);
             if (RequestedFuel == FuelType.None)
                 throw new InvalidProgramException();
             return RequestedFuel;

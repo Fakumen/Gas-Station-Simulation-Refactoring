@@ -87,7 +87,7 @@ namespace GasStations
             FuelTankerCalled?.Invoke(this);
             foreach (var fuel in GetFuelToRefillList())
             {
-                _availableFuel[fuel].ReserveSpace(GasolineTanker.TankCapacity);
+                _availableFuel[fuel].ReserveVolume(GasolineTanker.TankCapacity);
             }
         }
 

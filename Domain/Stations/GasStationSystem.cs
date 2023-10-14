@@ -7,6 +7,8 @@ namespace GasStations
 {
     public class GasStationSystem
     {
+        private readonly OrderProvider _orderProvider;
+
         private readonly List<OrderedFuel> _totalOrdersInCurrentTick = new();
         private readonly List<GasStation> _stations = new();
         private readonly List<GasolineTanker> _gasolineTankers = new();
@@ -18,8 +20,11 @@ namespace GasStations
             { FuelType.Diesel, 51.5f }
         };
 
-        public GasStationSystem(int stationaryStationsCount, int miniStationsCount)
+        public GasStationSystem(
+            OrderProvider orderProvider,
+            int stationaryStationsCount, int miniStationsCount)
         {
+            _orderProvider = orderProvider;
             for (var i = 0; i < stationaryStationsCount; i++)
             {
                 var avFuel = new Dictionary<FuelType, int>
@@ -56,7 +61,6 @@ namespace GasStations
 
         //TODO: Move to Simulation parameters
         #region Simulation Parameters
-        public readonly static Random Random = new(0);
         public long PassedSimulationTicks { get; private set; }
         public event Action DayPassed;
         #endregion
@@ -75,7 +79,6 @@ namespace GasStations
 
         private void OnScheduleRefillIntervalPassed(GasStation station)
         {
-            
             if (station.IsRequireGasolineTanker)
             {
                 foreach (var fuel in station.GetFuelToRefillList())
@@ -116,32 +119,7 @@ namespace GasStations
         {
             foreach (var station in GasStations)
             {
-                foreach (var clientType in EnumExtensions.GetValues<ClientType>())
-                {
-                    if (station.IsExpectingOrder(clientType))
-                        continue;
-                    var newOrder = new ClientOrder(
-                        clientType,
-                        clientType switch
-                        {
-                            ClientType.Car => r => r.Next(1, 6),
-                            ClientType.Truck => r => r.Next(1, 13),
-                            _ => throw new NotImplementedException(),
-                        },
-                        clientType switch
-                        {
-                            ClientType.Car => r => r.Next(10, 51),
-                            ClientType.Truck => r => r.Next(30, 301),
-                            _ => throw new NotImplementedException(),
-                        },
-                        clientType switch
-                        {
-                            ClientType.Car => (r, f) => f.Keys.TakeRandom(r),
-                            ClientType.Truck => TruckFuelSelector,
-                            _ => throw new NotImplementedException(),
-                        });
-                    station.AddOrderInQueue(newOrder);
-                }
+                _orderProvider.ProvideOrdersToStation(station);
                 station.WaitOneTick();
             }
             OrderGasolineTankers(_totalOrdersInCurrentTick);
@@ -153,20 +131,6 @@ namespace GasStations
                     gasTanker.StartDelivery();
             }
             PassedSimulationTicks++;
-
-            static FuelType TruckFuelSelector(
-                Random randomizer, IReadOnlyDictionary<FuelType, FuelContainer> availableFuel)
-            {
-                var fuelForTrucks = availableFuel.Keys
-                    .Where(f => f == FuelType.Petrol92 || f == FuelType.Diesel)
-                    .ToArray();
-                if (fuelForTrucks.Any(f => f == FuelType.Diesel))
-                {
-                    return fuelForTrucks
-                        .TakeRandom(randomizer);
-                }
-                return fuelForTrucks.Single(f => f == FuelType.Petrol92);
-            }
         }
 
         public void RunSimulation(long simulationTimeInTicks)

@@ -36,13 +36,13 @@ namespace GasStations
             Income += volume;
         }
 
-        public void ReserveSpace(int volume)
+        public void ReserveVolume(int volume)
         {
             if (volume + ReservedVolume > EmptySpace) throw new ArgumentException();
             ReservedVolume += volume;
         }
 
-        private void UnreserveSpace(int volume)
+        private void UnreserveVolume(int volume)
         {
             if (volume > ReservedVolume) throw new ArgumentException();
             ReservedVolume -= volume;
