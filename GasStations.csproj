@@ -45,24 +45,24 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ClientOrder.cs" />
-    <Compile Include="FuelContainer.cs" />
-    <Compile Include="GasolineTanker.cs" />
-    <Compile Include="GasStation.cs" />
-    <Compile Include="NewArchitecture\FuelType.cs" />
-    <Compile Include="NewArchitecture\Infrastructure\EnumerableExtensions.cs" />
-    <Compile Include="NewArchitecture\Infrastructure\EnumExtensions.cs" />
-    <Compile Include="NewArchitecture\Infrastructure\EnumMask.cs" />
-    <Compile Include="NewArchitecture\Orders\ClientType.cs" />
-    <Compile Include="NewArchitecture\Orders\ServedOrder.cs" />
-    <Compile Include="OrderedFuel.cs" />
-    <Compile Include="GasStationSystem.cs" />
+    <Compile Include="Domain\Orders\ClientOrder.cs" />
+    <Compile Include="Domain\FuelContainer.cs" />
+    <Compile Include="Domain\GasolineTankers\GasolineTanker.cs" />
+    <Compile Include="Domain\Stations\GasStation.cs" />
+    <Compile Include="Domain\FuelType.cs" />
+    <Compile Include="Infrastructure\EnumerableExtensions.cs" />
+    <Compile Include="Infrastructure\EnumExtensions.cs" />
+    <Compile Include="Infrastructure\EnumMask.cs" />
+    <Compile Include="Domain\Orders\ClientType.cs" />
+    <Compile Include="Domain\Orders\ServedOrder.cs" />
+    <Compile Include="Domain\GasolineTankers\OrderedFuel.cs" />
+    <Compile Include="Domain\Stations\GasStationSystem.cs" />
     <Compile Include="IWaiter.cs" />
-    <Compile Include="StationStatisticsGatherer.cs" />
+    <Compile Include="Statistics\StationStatisticsGatherer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ReportMaker.cs" />
-    <Compile Include="StationsNetworkStatisticsGatherer.cs" />
+    <Compile Include="Statistics\ReportMaker.cs" />
+    <Compile Include="Statistics\StationsNetworkStatisticsGatherer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
