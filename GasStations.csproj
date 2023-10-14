@@ -45,9 +45,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Domain\GasolineTankers\FuelTankersProvider.cs" />
     <Compile Include="Domain\Orders\ClientOrder.cs" />
     <Compile Include="Domain\FuelContainer.cs" />
-    <Compile Include="Domain\GasolineTankers\GasolineTanker.cs" />
+    <Compile Include="Domain\GasolineTankers\FuelTanker.cs" />
     <Compile Include="Domain\Orders\OrderProvider.cs" />
     <Compile Include="Domain\Simulation.cs" />
     <Compile Include="Domain\Stations\GasStation.cs" />

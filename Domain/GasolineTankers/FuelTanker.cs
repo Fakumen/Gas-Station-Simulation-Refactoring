@@ -4,10 +4,9 @@ using System.Linq;
 
 namespace GasStations
 {
-    public class GasolineTanker : ISimulationEntity
+    public class FuelTanker : ISimulationEntity
     {
         private int newRandomArrivalTime => Simulation.Randomizer.Next(60, 121);
-        public const int TankCapacity = 6000;
         public const int ReturnToBaseTime = 90;
         public const int UnloadTime = 40;
         public int? ArrivalTime { get; private set; }
@@ -18,7 +17,7 @@ namespace GasStations
         public int EmptyTanksCount => TanksCount - LoadedFuel.Count;
         public event Action<GasStation> Arrived;
         public event Action<GasStation> Unloaded;
-        public event Action<GasolineTanker> ReturnedToBase;
+        public event Action<FuelTanker> ReturnedToBase;
 
         private int? ticksUntilArrival;
         private int? ticksUntilUnload;
@@ -63,15 +62,17 @@ namespace GasStations
             }
         }
 
+        public int TankCapacity { get; }
         public bool IsBusy =>
             TicksUntilArrival != null && TicksUntilArrival > 0
             || TicksUntilUnload != null && TicksUntilUnload > 0
             || TicksUntilReturnToBase != null && TicksUntilReturnToBase > 0;
 
-        public GasolineTanker(int tanksCount)
+        public FuelTanker(int tanksCount, int tankCapacity)
         {
             if (tanksCount != 2 && tanksCount != 3) throw new ArgumentException();
             TanksCount = tanksCount;
+            TankCapacity = tankCapacity;
         }
 
         public void StartDelivery()
@@ -80,15 +81,14 @@ namespace GasStations
             DriveToStation(LoadedFuel.First().OwnerStation);
         }
 
-        public void OrderFuel(GasStation orderOwner, FuelType fuelType, out bool isSuccessful)
+        public bool OrderFuel(GasStation orderOwner, FuelType fuelType)
         {
             if (!IsBusy && EmptyTanksCount > 0)
             {
                 LoadedFuel.Add(new OrderedFuel(orderOwner, fuelType));
-                isSuccessful = true;
-                return;
+                return true;
             }
-            isSuccessful = false;
+            return false;
         }
 
         private void DriveToStation(GasStation station)

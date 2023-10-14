@@ -81,7 +81,7 @@ namespace GasStations
                 Console.Write($" {stationName, -20}");
                 Console.ForegroundColor = ConsoleColor.Gray;
                 Console.Write($" \tКлиентов обслуженно: {station.SuccessfullyServedClients} из {station.TotalQueuedOrders};");
-                Console.Write($" \tВызовов бензовоза: {station.FuelTankersCalls};");
+                Console.Write($" \tВызовов бензовоза: {station.RefillRequestsCount};");
                 Console.Write($"\n\tТопливо:   ");
                 foreach (var f in station.AvailableFuel)
                 {
@@ -97,7 +97,7 @@ namespace GasStations
             }
         }
 
-        public static void TotalGasTankersReport(IEnumerable<GasolineTanker> tankers)
+        public static void TotalGasTankersReport(IEnumerable<FuelTanker> tankers)
         {
             var tankersList = tankers.ToList();
             var tankers2 = tankersList.Where(t => t.TanksCount == 2).ToArray();

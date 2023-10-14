@@ -17,7 +17,7 @@ namespace GasStations
             _trackingStation = trackingStation;
             _trackingStation.OrderQueued += OnOrderQueued;
             _trackingStation.OrderServed += OnOrderServed;
-            _trackingStation.FuelTankerCalled += OnFuelTankerCalled;
+            _trackingStation.FuelVolumesRefillRequested += OnRefillRequested;
         }
 
         public StationType StationType => _trackingStation.StationType;
@@ -25,7 +25,7 @@ namespace GasStations
         public IReadOnlyList<ClientOrder> QueuedOrders => _queuedOrders;
         public IReadOnlyList<ServedOrder> ServedOrders => _servedOrders;
 
-        public int FuelTankersCalls { get; private set; }
+        public int RefillRequestsCount { get; private set; }
         public bool IsWaitingForGasolineTanker => _trackingStation.IsWaitingForGasolineTanker;
         public float StationRevenue => _servedOrders.Sum(o => o.OrderRevenue);
         public int SuccessfullyServedClients => _servedOrders.Where(o => o.IsSuccessful).Count();
@@ -56,11 +56,11 @@ namespace GasStations
             _servedOrders.Add(order);
         }
 
-        private void OnFuelTankerCalled(GasStation station)
+        private void OnRefillRequested(GasStation station, IReadOnlyDictionary<FuelType, int> fuelSections)
         {
             if (station != _trackingStation)
                 throw new InvalidProgramException();
-            FuelTankersCalls++;
+            RefillRequestsCount++;
         }
     }
 }

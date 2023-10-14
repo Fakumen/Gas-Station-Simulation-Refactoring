@@ -1,13 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace GasStations
 {
     public class GasStationSystem
     {
-        private readonly List<OrderedFuel> _totalOrdersInCurrentTick = new();
-        private readonly List<GasolineTanker> _gasolineTankers = new();
+        private FuelTankersProvider _fuelTankersProvider;
 
         private readonly List<GasStation> _stations = new();
         private readonly Dictionary<FuelType, float> _fuelPrices = new()
@@ -18,8 +17,11 @@ namespace GasStations
             { FuelType.Diesel, 51.5f }
         };
 
-        public GasStationSystem(int stationaryStationsCount, int miniStationsCount)
+        public GasStationSystem(
+            FuelTankersProvider fuelTankersProvider, 
+            int stationaryStationsCount, int miniStationsCount)
         {
+            _fuelTankersProvider = fuelTankersProvider;
             for (var i = 0; i < stationaryStationsCount; i++)
             {
                 var avFuel = new Dictionary<FuelType, int>
@@ -29,10 +31,10 @@ namespace GasStations
                     { FuelType.Petrol98, 16000 },
                     { FuelType.Diesel, 30000 }
                 };
-                var station = new GasStation(StationType.Stationary, _fuelPrices, avFuel);
+                var station = new GasStation(
+                    StationType.Stationary, _fuelPrices, avFuel, fuelTankersProvider.TankerVolumeCapacity);
                 _stations.Add(station);
-                station.CriticalFuelLevelReached += OnCriticalFuelLevelReached;
-                station.ScheduleRefillIntervalPassed += OnScheduleRefillIntervalPassed;
+                station.FuelVolumesRefillRequested += OrderFuelToStation;
             }
 
             for (var i = 0; i < miniStationsCount; i++)
@@ -42,81 +44,27 @@ namespace GasStations
                     { FuelType.Petrol92, 16000 },
                     { FuelType.Petrol95, 15000 }
                 };
-                var station = new GasStation(StationType.Mini, _fuelPrices, avFuel);
+                var station = new GasStation(
+                    StationType.Mini, _fuelPrices, avFuel, fuelTankersProvider.TankerVolumeCapacity);
                 _stations.Add(station);
-                station.CriticalFuelLevelReached += OnCriticalFuelLevelReached;
-                station.ScheduleRefillIntervalPassed += OnScheduleRefillIntervalPassed;
+                station.FuelVolumesRefillRequested += OrderFuelToStation;
             }
         }
 
         public IReadOnlyList<GasStation> GasStations => _stations;
 
-        public IReadOnlyList<GasolineTanker> GasolineTankers => _gasolineTankers;
-        public IEnumerable<GasolineTanker> FreeGasolineTankers => GasolineTankers.Where(t => !t.IsBusy && t.EmptyTanksCount > 0);
-
-        private void OnCriticalFuelLevelReached(GasStation station, FuelType criticalLevelFuel)
+        private void OrderFuelToStation(
+            GasStation station, IReadOnlyDictionary<FuelType, int> fuelVolumes)
         {
-            if (station.IsRequireGasolineTanker)
+            var minimalRefillVolume = _fuelTankersProvider.TankerVolumeCapacity;
+            if (fuelVolumes.Any(s => s.Value < 0 || s.Value % minimalRefillVolume != 0))
+                throw new System.ArgumentException();
+            foreach (var fuel in fuelVolumes.Keys)
             {
-                foreach (var fuel in station.GetFuelToRefillList())
+                for (var i = 0; i < fuelVolumes[fuel] / minimalRefillVolume; i++)
                 {
-                    _totalOrdersInCurrentTick.Add(new OrderedFuel(station, fuel));
+                    _fuelTankersProvider.OrderFuelSection(station, fuel);
                 }
-                station.ConfirmGasolineOrder();
-            }
-        }
-
-        private void OnScheduleRefillIntervalPassed(GasStation station)
-        {
-            if (station.IsRequireGasolineTanker)
-            {
-                foreach (var fuel in station.GetFuelToRefillList())
-                {
-                    _totalOrdersInCurrentTick.Add(new OrderedFuel(station, fuel));
-                }
-                station.ConfirmGasolineOrder();
-            }
-        }
-
-        //TODO: Move to FuelTankersProvider
-        public void OrderGasolineTankers()
-        {
-            var orderedFuel = _totalOrdersInCurrentTick.ToList();
-
-            var leftOrderedFuel = orderedFuel.Count;
-            foreach (var fuel in orderedFuel)
-            {
-                var freeGasTanker = FreeGasolineTankers
-                    .Where(t => fuel.OwnerStation.StationType == StationType.Stationary || t.TanksCount < 3) //Мини АЗС не обслуживают 3х+ секционные бензовозы
-                    .FirstOrDefault();
-                if (freeGasTanker == null) //Нет подходящих бензовозов
-                {
-                    var tanksCount = leftOrderedFuel;
-                    if (fuel.OwnerStation.StationType == StationType.Stationary)
-                    {
-                        tanksCount = Math.Min(tanksCount, 3);
-                        if (tanksCount < 2)
-                            tanksCount = 2;
-                    }
-                    else if (fuel.OwnerStation.StationType == StationType.Mini)
-                        tanksCount = 2;
-                    leftOrderedFuel -= tanksCount;
-                    _gasolineTankers.Add(new GasolineTanker(tanksCount));
-                }
-                FreeGasolineTankers.First().OrderFuel(fuel.OwnerStation, fuel.FuelType, out var success);
-            }
-
-            _totalOrdersInCurrentTick.Clear();
-        }
-
-        //TODO: Move to FuelTankersProvider
-        public void HandleTickByGasolineTankers()
-        {
-            foreach (var gasTanker in GasolineTankers)
-            {
-                gasTanker.OnSimulationTickPassed();
-                if (!gasTanker.IsBusy && gasTanker.LoadedFuel.Count > 0)
-                    gasTanker.StartDelivery();
             }
         }
     }

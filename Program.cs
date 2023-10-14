@@ -10,8 +10,9 @@ namespace GasStations
             Console.SetWindowSize(220, 60);
 
             var orderProvider = new OrderProvider();
-            var stationsNetwork = new GasStationSystem(14, 16);
-            var simulation = new Simulation(stationsNetwork, orderProvider);
+            var tankersProvider = new FuelTankersProvider();
+            var stationsNetwork = new GasStationSystem(tankersProvider, 14, 16);
+            var simulation = new Simulation(stationsNetwork, tankersProvider, orderProvider);
             var networkStatistics = new StationsNetworkStatisticsGatherer(stationsNetwork);
 
             var trackedStations = networkStatistics.GasStations.ToHashSet();
@@ -33,7 +34,7 @@ namespace GasStations
                 Console.WriteLine();
                 ReportMaker.GSClientsRevenueReport(networkStatistics);
                 ReportMaker.ClientOrdersAverageIntervalReport(networkStatistics);
-                ReportMaker.TotalGasTankersReport(stationsNetwork.GasolineTankers);//TODO: dependency from TankersManager
+                ReportMaker.TotalGasTankersReport(tankersProvider.GasolineTankers);//TODO: dependency from TankersManager
 
                 //Input handling
                 Console.WriteLine("\n\tНажмите Enter, чтобы продолжить");

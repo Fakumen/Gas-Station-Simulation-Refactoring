@@ -7,14 +7,16 @@ namespace GasStations
         public readonly static Random Randomizer = new(0);
 
         private readonly GasStationSystem _stationsNetwork;
+        private readonly FuelTankersProvider _fuelTankersProvider;
         private readonly OrderProvider _orderProvider;
 
         public Simulation(
             GasStationSystem stationsNetwork,
-            //FuelTankersProvider tankersProvider,
+            FuelTankersProvider fuelTankersProvider,
             OrderProvider orderProvider)
         {
             _stationsNetwork = stationsNetwork;
+            _fuelTankersProvider = fuelTankersProvider;
             _orderProvider = orderProvider;
         }
 
@@ -41,8 +43,7 @@ namespace GasStations
                 _orderProvider.ProvideOrdersToStation(station);
                 station.OnSimulationTickPassed();
             }
-            _stationsNetwork.OrderGasolineTankers();//TODO: Move to FuelTankersProvider
-            _stationsNetwork.HandleTickByGasolineTankers();//TODO: Move to FuelTankersProvider
+            _fuelTankersProvider.OnSimulationTickPassed();
             PassedSimulationTicks++;
         }
     }

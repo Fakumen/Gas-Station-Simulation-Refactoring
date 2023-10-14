@@ -19,23 +19,21 @@ namespace GasStations
 
         public int ScheduleRefillInterval { get; }
         public int CriticalFuelLevel { get; }
+        public int MinimalRefillVolume { get; }
         public StationType StationType { get; }
         public IReadOnlyDictionary<FuelType, FuelContainer> AvailableFuel => _availableFuel;
 
         public bool IsWaitingForGasolineTanker => _availableFuel.Any(e => e.Value.ReservedVolume > 0);
-        public bool IsRequireGasolineTanker
-            => _availableFuel.Any(e => e.Value.EmptyUnreservedSpace >= GasolineTanker.TankCapacity);
 
-        public event Action<GasStation> ScheduleRefillIntervalPassed;
-        public event Action<GasStation, FuelType> CriticalFuelLevelReached;
         public event Action<GasStation, ClientOrder> OrderQueued;
         public event Action<GasStation, ServedOrder> OrderServed;
-        public event Action<GasStation> FuelTankerCalled;
+        public event Action<GasStation, IReadOnlyDictionary<FuelType, int>> FuelVolumesRefillRequested;
 
         public GasStation(
             StationType stationType, 
             IReadOnlyDictionary<FuelType, float> fuelPrices,
             IReadOnlyDictionary<FuelType, int> fuelSectionVolumes, 
+            int minimalRefillVolume,
             int refillInterval = 24 * 60, 
             int criticalFuelLevel = 1000)
         {
@@ -46,34 +44,18 @@ namespace GasStations
                 kv => new FuelContainer(kv.Value));
             ScheduleRefillInterval = refillInterval;
             CriticalFuelLevel = criticalFuelLevel;
+            MinimalRefillVolume = minimalRefillVolume;
         }
 
         public bool IsExpectingOrder(ClientType clientType)
             => _currentClientOrders.ContainsKey(clientType) && _currentClientOrders[clientType] != null;
 
-        /// <summary>
-        /// Возвращает общий список нужного в цистернах топлива по одному элементу для каждой цистерны.
-        /// </summary>
-        public FuelType[] GetFuelToRefillList()
-        {
-            var result = new List<FuelType>();
-            var gasolineTankerCapacity = GasolineTanker.TankCapacity;
-            foreach (var container in _availableFuel)
-            {
-                var emptyUnreservedSpace = container.Value.EmptyUnreservedSpace;
-                if (emptyUnreservedSpace >= gasolineTankerCapacity)
-                {
-                    for (var i = 0; i < emptyUnreservedSpace / gasolineTankerCapacity; i++)
-                        result.Add(container.Key);
-                }
-            }
-            return result.ToArray();
-        }
-
         public void OnSimulationTickPassed()
         {
             if (_ticksPassed % ScheduleRefillInterval == 0 && _ticksPassed != 0)
-                ScheduleRefillIntervalPassed?.Invoke(this);
+            {
+                CheckRefillNecessity();
+            }
             foreach (var order in _currentClientOrders.Values.ToArray())
             {
                 order.OnSimulationTickPassed();
@@ -81,20 +63,10 @@ namespace GasStations
             _ticksPassed++;
         }
 
-        public void ConfirmGasolineOrder()
+        public void Refill(FuelType fuel, int volume)
         {
-            if (!IsRequireGasolineTanker) throw new InvalidOperationException();
-            FuelTankerCalled?.Invoke(this);
-            foreach (var fuel in GetFuelToRefillList())
-            {
-                _availableFuel[fuel].ReserveVolume(GasolineTanker.TankCapacity);
-            }
-        }
-
-        public void Refill(FuelType fuelToRefill, int amount)
-        {
-            if (amount < 0) throw new ArgumentException();
-            _availableFuel[fuelToRefill].Fill(amount);
+            if (volume < 0) throw new ArgumentException();
+            _availableFuel[fuel].Fill(volume);
         }
 
         public void AddOrderInQueue(ClientOrder order)
@@ -138,7 +110,22 @@ namespace GasStations
         private void CheckCriticalFuelLevel(FuelType fuelToCheck)
         {
             if (_availableFuel[fuelToCheck].CurrentVolume <= CriticalFuelLevel)
-                CriticalFuelLevelReached?.Invoke(this, fuelToCheck);
+                CheckRefillNecessity();
+        }
+
+        private void CheckRefillNecessity()
+        {
+            if (_availableFuel.Any(e => e.Value.EmptyUnreservedSpace >= MinimalRefillVolume))
+            {
+                var fuelToRefill = new Dictionary<FuelType, int>();
+                foreach (var fuel in _availableFuel.Keys)
+                {
+                    var availableRefills = _availableFuel[fuel].EmptyUnreservedSpace / MinimalRefillVolume;
+                    fuelToRefill.Add(fuel, MinimalRefillVolume * availableRefills);
+                    _availableFuel[fuel].ReserveVolume(MinimalRefillVolume * availableRefills);
+                }
+                FuelVolumesRefillRequested?.Invoke(this, fuelToRefill);
+            }
         }
     }
 }
