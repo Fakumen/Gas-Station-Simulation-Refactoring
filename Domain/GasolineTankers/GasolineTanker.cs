@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace GasStations
 {
-    public class GasolineTanker : IWaiter
+    public class GasolineTanker : ISimulationEntity
     {
         private int newRandomArrivalTime => Simulation.Randomizer.Next(60, 121);
         public const int TankCapacity = 6000;
@@ -131,7 +131,7 @@ namespace GasStations
             }
         }
 
-        public void WaitOneTick()
+        public void OnSimulationTickPassed()
         {
             TicksUntilArrival--;
             TicksUntilUnload--;

@@ -10,13 +10,14 @@ namespace GasStations
             Console.SetWindowSize(220, 60);
 
             var orderProvider = new OrderProvider();
-            var stationsNetwork = new GasStationSystem(orderProvider, 14, 16);
+            var stationsNetwork = new GasStationSystem(14, 16);
+            var simulation = new Simulation(stationsNetwork, orderProvider);
             var networkStatistics = new StationsNetworkStatisticsGatherer(stationsNetwork);
 
             var trackedStations = networkStatistics.GasStations.ToHashSet();
-            stationsNetwork.DayPassed += OnDayPassed;
+            simulation.DayPassed += OnDayPassed;
 
-            stationsNetwork.RunSimulation(24 * 60 * 10);
+            simulation.RunSimulation(24 * 60 * 10);
 
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine("\n Симуляция окончена.");
@@ -27,7 +28,7 @@ namespace GasStations
             void OnDayPassed()
             {
                 //Report display
-                ReportMaker.WriteDayTitle(stationsNetwork.PassedSimulationTicks);
+                ReportMaker.WriteDayTitle(simulation.PassedSimulationTicks);
                 ReportMaker.GSStationsDetailedReport(networkStatistics, s => trackedStations.Contains(s));
                 Console.WriteLine();
                 ReportMaker.GSClientsRevenueReport(networkStatistics);

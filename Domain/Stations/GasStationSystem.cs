@@ -1,5 +1,4 @@
-﻿using GasStations.Infrastructure;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -7,11 +6,10 @@ namespace GasStations
 {
     public class GasStationSystem
     {
-        private readonly OrderProvider _orderProvider;
-
         private readonly List<OrderedFuel> _totalOrdersInCurrentTick = new();
-        private readonly List<GasStation> _stations = new();
         private readonly List<GasolineTanker> _gasolineTankers = new();
+
+        private readonly List<GasStation> _stations = new();
         private readonly Dictionary<FuelType, float> _fuelPrices = new()
         {
             { FuelType.Petrol92, 45.6f },
@@ -20,11 +18,8 @@ namespace GasStations
             { FuelType.Diesel, 51.5f }
         };
 
-        public GasStationSystem(
-            OrderProvider orderProvider,
-            int stationaryStationsCount, int miniStationsCount)
+        public GasStationSystem(int stationaryStationsCount, int miniStationsCount)
         {
-            _orderProvider = orderProvider;
             for (var i = 0; i < stationaryStationsCount; i++)
             {
                 var avFuel = new Dictionary<FuelType, int>
@@ -59,12 +54,6 @@ namespace GasStations
         public IReadOnlyList<GasolineTanker> GasolineTankers => _gasolineTankers;
         public IEnumerable<GasolineTanker> FreeGasolineTankers => GasolineTankers.Where(t => !t.IsBusy && t.EmptyTanksCount > 0);
 
-        //TODO: Move to Simulation parameters
-        #region Simulation Parameters
-        public long PassedSimulationTicks { get; private set; }
-        public event Action DayPassed;
-        #endregion
-
         private void OnCriticalFuelLevelReached(GasStation station, FuelType criticalLevelFuel)
         {
             if (station.IsRequireGasolineTanker)
@@ -89,8 +78,11 @@ namespace GasStations
             }
         }
 
-        public void OrderGasolineTankers(List<OrderedFuel> orderedFuel)
+        //TODO: Move to FuelTankersProvider
+        public void OrderGasolineTankers()
         {
+            var orderedFuel = _totalOrdersInCurrentTick.ToList();
+
             var leftOrderedFuel = orderedFuel.Count;
             foreach (var fuel in orderedFuel)
             {
@@ -113,35 +105,18 @@ namespace GasStations
                 }
                 FreeGasolineTankers.First().OrderFuel(fuel.OwnerStation, fuel.FuelType, out var success);
             }
+
+            _totalOrdersInCurrentTick.Clear();
         }
 
-        private void HandleOneTick()
+        //TODO: Move to FuelTankersProvider
+        public void HandleTickByGasolineTankers()
         {
-            foreach (var station in GasStations)
-            {
-                _orderProvider.ProvideOrdersToStation(station);
-                station.WaitOneTick();
-            }
-            OrderGasolineTankers(_totalOrdersInCurrentTick);
-            _totalOrdersInCurrentTick.Clear();
             foreach (var gasTanker in GasolineTankers)
             {
-                gasTanker.WaitOneTick();
+                gasTanker.OnSimulationTickPassed();
                 if (!gasTanker.IsBusy && gasTanker.LoadedFuel.Count > 0)
                     gasTanker.StartDelivery();
-            }
-            PassedSimulationTicks++;
-        }
-
-        public void RunSimulation(long simulationTimeInTicks)
-        {
-            for (var i = 1; i <= simulationTimeInTicks; i++)//Why it skips 1st tick?
-            {
-                HandleOneTick();
-                if ((i) % (24 * 60) == 0 && i != 0)//Отчет между сутками
-                {
-                    DayPassed?.Invoke();
-                }
             }
         }
     }

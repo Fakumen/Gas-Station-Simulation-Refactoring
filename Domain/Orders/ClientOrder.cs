@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace GasStations
 {
-    public class ClientOrder : IWaiter
+    public class ClientOrder : ISimulationEntity
     {
         private int _appearInterval;
         private int _ticksUntilOrderAppear;
@@ -40,7 +40,7 @@ namespace GasStations
             return RequestedFuel;
         }
 
-        public void WaitOneTick()
+        public void OnSimulationTickPassed()
         {
             _ticksUntilOrderAppear--;
             if (_ticksUntilOrderAppear == 0)

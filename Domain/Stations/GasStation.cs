@@ -10,7 +10,7 @@ namespace GasStations
         Mini
     }
 
-    public class GasStation : IWaiter
+    public class GasStation : ISimulationEntity
     {
         private readonly Dictionary<FuelType, float> _fuelPrices;
         private readonly Dictionary<FuelType, FuelContainer> _availableFuel;
@@ -70,13 +70,13 @@ namespace GasStations
             return result.ToArray();
         }
 
-        public void WaitOneTick()
+        public void OnSimulationTickPassed()
         {
             if (_ticksPassed % ScheduleRefillInterval == 0 && _ticksPassed != 0)
                 ScheduleRefillIntervalPassed?.Invoke(this);
             foreach (var order in _currentClientOrders.Values.ToArray())
             {
-                order.WaitOneTick();
+                order.OnSimulationTickPassed();
             }
             _ticksPassed++;
         }

@@ -59,7 +59,7 @@
     <Compile Include="Domain\Orders\ServedOrder.cs" />
     <Compile Include="Domain\GasolineTankers\OrderedFuel.cs" />
     <Compile Include="Domain\Stations\GasStationSystem.cs" />
-    <Compile Include="IWaiter.cs" />
+    <Compile Include="Domain\ISimulationEntity.cs" />
     <Compile Include="Statistics\StationStatisticsGatherer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
