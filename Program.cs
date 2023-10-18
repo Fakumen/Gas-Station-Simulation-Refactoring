@@ -13,6 +13,8 @@ namespace GasStations
             var tankersProvider = new FuelTankersProvider();
             var stationsNetwork = new GasStationSystem(tankersProvider, 14, 16);
             var simulation = new Simulation(stationsNetwork, tankersProvider, orderProvider);
+
+            var ordersStatistics = new OrdersAppearStatisticsGatherer(orderProvider);
             var networkStatistics = new StationsNetworkStatisticsGatherer(stationsNetwork);
 
             var trackedStations = networkStatistics.GasStations.ToHashSet();
@@ -30,10 +32,11 @@ namespace GasStations
             {
                 //Report display
                 ReportMaker.WriteDayTitle(simulation.PassedSimulationTicks);
-                ReportMaker.GSStationsDetailedReport(networkStatistics, s => trackedStations.Contains(s));
+                ReportMaker.GSStationsDetailedReport(
+                    networkStatistics, s => trackedStations.Contains(s), ordersStatistics);
                 Console.WriteLine();
-                ReportMaker.GSClientsRevenueReport(networkStatistics);
-                ReportMaker.ClientOrdersAverageIntervalReport(networkStatistics);
+                ReportMaker.GSClientsRevenueReport(networkStatistics, ordersStatistics);
+                ReportMaker.ClientOrdersAverageIntervalReport(ordersStatistics);
                 ReportMaker.TotalGasTankersReport(tankersProvider.GasolineTankers);//TODO: dependency from TankersManager
 
                 //Input handling

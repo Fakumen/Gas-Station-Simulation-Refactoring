@@ -22,5 +22,8 @@ namespace GasStations
 
         public IEnumerable<StationStatisticsGatherer> GasStations
             => _trackingNetwork.GasStations.Select(s => _stationsStatistics[s]);
+
+        public StationStatisticsGatherer GetStatisticsForStation(GasStation station)
+            => _stationsStatistics[station];
     }
 }

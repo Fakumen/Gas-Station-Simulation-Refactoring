@@ -4,17 +4,10 @@ using System.Linq;
 
 namespace GasStations
 {
-    public enum StationType
-    {
-        Stationary,
-        Mini
-    }
-
     public class GasStation : ISimulationEntity
     {
         private readonly Dictionary<FuelType, float> _fuelPrices;
         private readonly Dictionary<FuelType, FuelContainer> _availableFuel;
-        private readonly Dictionary<ClientType, ClientOrder> _currentClientOrders = new();
         private int _ticksPassed = 0;
 
         public int ScheduleRefillInterval { get; }
@@ -25,7 +18,6 @@ namespace GasStations
 
         public bool IsWaitingForGasolineTanker => _availableFuel.Any(e => e.Value.ReservedVolume > 0);
 
-        public event Action<GasStation, ClientOrder> OrderQueued;
         public event Action<GasStation, ServedOrder> OrderServed;
         public event Action<GasStation, IReadOnlyDictionary<FuelType, int>> FuelVolumesRefillRequested;
 
@@ -47,18 +39,11 @@ namespace GasStations
             MinimalRefillVolume = minimalRefillVolume;
         }
 
-        public bool IsExpectingOrder(ClientType clientType)
-            => _currentClientOrders.ContainsKey(clientType) && _currentClientOrders[clientType] != null;
-
         public void OnSimulationTickPassed()
         {
             if (_ticksPassed % ScheduleRefillInterval == 0 && _ticksPassed != 0)
             {
                 CheckRefillNecessity();
-            }
-            foreach (var order in _currentClientOrders.Values.ToArray())
-            {
-                order.OnSimulationTickPassed();
             }
             _ticksPassed++;
         }
@@ -69,33 +54,7 @@ namespace GasStations
             _availableFuel[fuel].Fill(volume);
         }
 
-        public void AddOrderInQueue(ClientOrder order)
-        {
-            var client = order.ClientType;
-
-            if (!_currentClientOrders.ContainsKey(client))
-                _currentClientOrders.Add(client, null);
-
-            if (_currentClientOrders[client] != null)
-                throw new InvalidOperationException();
-            _currentClientOrders[client] = order;
-            order.OrderAppeared += OnOrderAppeared;
-            OrderQueued?.Invoke(this, order);
-        }
-
-        private void OnOrderAppeared(ClientOrder order)
-        {
-            var client = order.ClientType;
-            var currentOrder = _currentClientOrders[client];
-            if (currentOrder != order)
-                throw new InvalidProgramException();
-
-            currentOrder.OrderAppeared -= OnOrderAppeared;
-            var servedOrder = ServeOrder(currentOrder);
-            _currentClientOrders[client] = null;
-        }
-
-        private ServedOrder ServeOrder(ClientOrder order)
+        public ServedOrder ServeOrder(ClientOrder order)
         {
             var requestedFuel = order.GetRequestedFuel(_availableFuel);
             var providedVolume = Math.Min(

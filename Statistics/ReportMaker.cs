@@ -17,18 +17,14 @@ namespace GasStations
         }
 
         public static void ClientOrdersAverageIntervalReport(
-            StationsNetworkStatisticsGatherer networkStatistics)
+            OrdersAppearStatisticsGatherer ordersStatistics)
         {
             var clientTypes = EnumExtensions.GetValues<ClientType>();
-            var avgOrderInterval = new Dictionary<ClientType, float>();
-            foreach (var client in clientTypes)
-            {
-                var stationsWithClientOrders = networkStatistics.GasStations
-                    .Where(s => s.QueuedOrders.Any(o => o.ClientType == client))
-                    .ToArray();
-                avgOrderInterval[client] = stationsWithClientOrders.Sum(s => s.OrdersIntervalSum[client])
-                    / (float)stationsWithClientOrders.Sum(s => s.TotalQueuedOrdersByClientType[client]);
-            }
+            var avgOrderInterval = clientTypes
+                .ToDictionary(
+                c => c, 
+                c => (float)ordersStatistics.GetOrdersAppearIntervalSumByClientType(c) 
+                / ordersStatistics.GetQueuedOrdersCountByClientType(c));
             
             Console.WriteLine(
                 $"Среднее время ожидания нового заказа: " +
@@ -36,7 +32,9 @@ namespace GasStations
                 $"Для грузовиков: {avgOrderInterval[ClientType.Truck]}(минут).");
         }
 
-        public static void GSClientsRevenueReport(StationsNetworkStatisticsGatherer networkStatistics)
+        public static void GSClientsRevenueReport(
+            StationsNetworkStatisticsGatherer networkStatistics,
+            OrdersAppearStatisticsGatherer ordersStatistics)
         {
             var stationaryGS = networkStatistics.GasStations
                 .Where(s => s.StationType == StationType.Stationary)
@@ -45,11 +43,13 @@ namespace GasStations
                 .Where(s => s.StationType == StationType.Mini)
                 .ToArray();
 
-            var stationaryGSOrdersCount = stationaryGS.Sum(s => s.TotalQueuedOrders);
+            var stationaryGSOrdersCount = stationaryGS
+                .Sum(s => ordersStatistics.GetQueuedOrdersByStation(s.StationModel).Count);
             var totalStationaryGSRevenue = stationaryGS.Sum(s => s.StationRevenue);
             var stationaryGSServedClients = stationaryGS.Sum(s => s.SuccessfullyServedClients);
 
-            var miniGSTotalOrdersCount = miniGS.Sum(s => s.TotalQueuedOrders);
+            var miniGSTotalOrdersCount = miniGS
+                .Sum(s => ordersStatistics.GetQueuedOrdersByStation(s.StationModel).Count);
             var totalMiniGSRevenue = miniGS.Sum(s => s.StationRevenue);
             var miniGSServedClients = miniGS.Sum(s => s.SuccessfullyServedClients);
 
@@ -63,7 +63,8 @@ namespace GasStations
 
         public static void GSStationsDetailedReport(
             StationsNetworkStatisticsGatherer networkStatistics, 
-            Predicate<StationStatisticsGatherer> stationDisplayPredicate)
+            Predicate<StationStatisticsGatherer> stationDisplayPredicate,
+            OrdersAppearStatisticsGatherer ordersStatistics)
         {
             var stations = networkStatistics.GasStations.ToList();
             for (var i = 0; i < stations.Count; i++)
@@ -80,7 +81,8 @@ namespace GasStations
                 }
                 Console.Write($" {stationName, -20}");
                 Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write($" \tКлиентов обслуженно: {station.SuccessfullyServedClients} из {station.TotalQueuedOrders};");
+                Console.Write($" \tКлиентов обслуженно: {station.SuccessfullyServedClients} " +
+                    $"из {ordersStatistics.GetQueuedOrdersByStation(station.StationModel).Count};");
                 Console.Write($" \tВызовов бензовоза: {station.RefillRequestsCount};");
                 Console.Write($"\n\tТопливо:   ");
                 foreach (var f in station.AvailableFuel)

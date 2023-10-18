@@ -53,6 +53,7 @@
     <Compile Include="Domain\Simulation.cs" />
     <Compile Include="Domain\Stations\GasStation.cs" />
     <Compile Include="Domain\FuelType.cs" />
+    <Compile Include="Domain\Stations\StationType.cs" />
     <Compile Include="Infrastructure\EnumerableExtensions.cs" />
     <Compile Include="Infrastructure\EnumExtensions.cs" />
     <Compile Include="Infrastructure\EnumMask.cs" />
@@ -61,6 +62,7 @@
     <Compile Include="Domain\GasolineTankers\OrderedFuel.cs" />
     <Compile Include="Domain\Stations\GasStationSystem.cs" />
     <Compile Include="Domain\ISimulationEntity.cs" />
+    <Compile Include="Statistics\OrdersAppearStatisticsGatherer.cs" />
     <Compile Include="Statistics\StationStatisticsGatherer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

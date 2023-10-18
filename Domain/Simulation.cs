@@ -42,7 +42,9 @@ namespace GasStations
             {
                 _orderProvider.ProvideOrdersToStation(station);
                 station.OnSimulationTickPassed();
+                _orderProvider.OnSimulationTickPassedForStation(station);//Simulates old behaviour
             }
+            //_orderProvider.OnSimulationTickPassed();
             _fuelTankersProvider.OnSimulationTickPassed();
             PassedSimulationTicks++;
         }
