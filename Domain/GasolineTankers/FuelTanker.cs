@@ -6,13 +6,13 @@ namespace GasStations
 {
     public class FuelTanker : ISimulationEntity
     {
-        private int newRandomArrivalTime => Simulation.Randomizer.Next(60, 121);
+        private GasStation _destinationStation;
+
         public const int ReturnToBaseTime = 90;
-        public const int UnloadTime = 40;
+        public const int RefillTime = 40;
         public int? ArrivalTime { get; private set; }
         public int DrivesCount { get; private set; }
-        public GasStation CurrentStation { get; private set; }
-        public readonly HashSet<OrderedFuel> LoadedFuel = new HashSet<OrderedFuel>(); //Count = 2 or 3
+        public readonly HashSet<OrderedFuel> LoadedFuel = new(); //Count = 2 or 3
         public readonly int TanksCount;
         public int EmptyTanksCount => TanksCount - LoadedFuel.Count;
         public event Action<GasStation> Arrived;
@@ -22,51 +22,12 @@ namespace GasStations
         private int? ticksUntilArrival;
         private int? ticksUntilUnload;
         private int? ticksUntilReturnToBase;
-        public int? TicksUntilArrival 
-        { 
-            get => ticksUntilArrival; 
-            private set
-            {
-                ticksUntilArrival = value;
-                if (value == 0)
-                {
-                    Arrived?.Invoke(CurrentStation);
-                    ticksUntilArrival = null;
-                }
-            }
-        }
-        public int? TicksUntilUnload
-        {
-            get => ticksUntilUnload;
-            private set
-            {
-                ticksUntilUnload = value;
-                if (value == 0)
-                {
-                    Unloaded?.Invoke(CurrentStation);
-                    ticksUntilUnload = null;
-                }
-            }
-        }
-        public int? TicksUntilReturnToBase
-        {
-            get => ticksUntilReturnToBase;
-            private set
-            {
-                ticksUntilReturnToBase = value;
-                if (value == 0)
-                {
-                    ReturnedToBase?.Invoke(this);
-                    ticksUntilReturnToBase = null;
-                }
-            }
-        }
 
         public int TankCapacity { get; }
         public bool IsBusy =>
-            TicksUntilArrival != null && TicksUntilArrival > 0
-            || TicksUntilUnload != null && TicksUntilUnload > 0
-            || TicksUntilReturnToBase != null && TicksUntilReturnToBase > 0;
+            ticksUntilArrival != null && ticksUntilArrival > 0
+            || ticksUntilUnload != null && ticksUntilUnload > 0
+            || ticksUntilReturnToBase != null && ticksUntilReturnToBase > 0;
 
         public FuelTanker(int tanksCount, int tankCapacity)
         {
@@ -81,11 +42,11 @@ namespace GasStations
             DriveToStation(LoadedFuel.First().OwnerStation);
         }
 
-        public bool OrderFuel(GasStation orderOwner, FuelType fuelType)
+        public bool LoadOrderedFuel(OrderedFuel orderedFuel)
         {
             if (!IsBusy && EmptyTanksCount > 0)
             {
-                LoadedFuel.Add(new OrderedFuel(orderOwner, fuelType));
+                LoadedFuel.Add(orderedFuel);
                 return true;
             }
             return false;
@@ -94,48 +55,68 @@ namespace GasStations
         private void DriveToStation(GasStation station)
         {
             if (IsBusy) throw new InvalidOperationException();
-            CurrentStation = station;
-            TicksUntilArrival = ArrivalTime = newRandomArrivalTime;
-            Arrived += OnGasolineTankerArrived;
+            _destinationStation = station;
+            ticksUntilArrival = ArrivalTime = Simulation.Randomizer.Next(60, 121);
+            Arrived += OnArrivedToStation;
         }
 
-        private void OnGasolineTankerArrived(GasStation station)
+        private void OnArrivedToStation(GasStation station)
         {
             if (IsBusy) throw new InvalidOperationException();
-            TicksUntilUnload = UnloadTime;
-            Unloaded += Unload;
-            Arrived -= OnGasolineTankerArrived;
+            ticksUntilUnload = RefillTime;
+            Unloaded += OnRefillFinished;
+            Arrived -= OnArrivedToStation;
         }
 
-        private void Unload(GasStation owner)
+        private void OnRefillFinished(GasStation refilledStation)
         {
             if (IsBusy) throw new InvalidOperationException();
-            if (TicksUntilUnload == null) throw new InvalidOperationException();
-            if (!LoadedFuel.Any(o => o.OwnerStation == owner)) throw new ArgumentException();
+            if (ticksUntilUnload == null) throw new InvalidOperationException();
+            var owner = _destinationStation;
             var fuelForThisStation = LoadedFuel.Where(o => o.OwnerStation == owner).ToArray();
+            if (fuelForThisStation.Length == 0)
+                throw new InvalidProgramException();
+
+            Unloaded -= OnRefillFinished;
             foreach (var fuel in fuelForThisStation)
             {
                 owner.Refill(fuel.FuelType, TankCapacity);
+                LoadedFuel.Remove(fuel);
             }
-            foreach (var usedFuel in fuelForThisStation)
-                LoadedFuel.Remove(usedFuel);
-            Unloaded -= Unload;
-            CurrentStation = null;
-            if (LoadedFuel.Count > 0)//Есть, что еще развозить
+            _destinationStation = null;
+
+            if (LoadedFuel.Count > 0)
                 DriveToStation(LoadedFuel.First().OwnerStation);
-            else//Нечего больше развозить
+            else
             {
-                //Бензовоз возвращается домой
-                TicksUntilReturnToBase = ReturnToBaseTime;
+                ticksUntilReturnToBase = ReturnToBaseTime;
                 DrivesCount++;
             }
         }
 
         public void OnSimulationTickPassed()
         {
-            TicksUntilArrival--;
-            TicksUntilUnload--;
-            TicksUntilReturnToBase--;
+            //TODO: Simulate behaviour in refactored version
+            //Changes behaviour if events fire only after ALL ticks decremented
+            //Ticks from different jobs can spend it one tick pass!! That is incorrect behaviour.
+            ticksUntilArrival--;
+            if (ticksUntilArrival == 0)
+            {
+                Arrived?.Invoke(_destinationStation);
+                ticksUntilArrival = null;
+            }
+            ticksUntilUnload--;
+            if (ticksUntilUnload == 0)
+            {
+                Unloaded?.Invoke(_destinationStation);
+                ticksUntilUnload = null;
+            }
+            ticksUntilReturnToBase--;
+            if (ticksUntilReturnToBase == 0)
+            {
+                ReturnedToBase?.Invoke(this);
+                ticksUntilReturnToBase = null;
+            }
         }
     }
 }

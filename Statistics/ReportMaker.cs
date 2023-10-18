@@ -26,7 +26,7 @@ namespace GasStations
             ShowAverageOrdersInterval(statistics.OrdersAppearStatistics);
             //TODO: dependency from TankersManagerStatistics
             ShowFuelTankersStatistics(
-                statistics.TrackingSimulation.FuelTankersProvider.GasolineTankers);
+                statistics.TrackingSimulation.FuelTankersProvider.FuelTankers);
         }
 
         private static void WriteDayTitle(long ticksPassed)

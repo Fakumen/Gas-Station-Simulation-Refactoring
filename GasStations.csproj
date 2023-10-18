@@ -46,6 +46,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Domain\GasolineTankers\FuelTankersProvider.cs" />
+    <Compile Include="Domain\GasolineTankers\Jobs\IFuelTankerJob.cs" />
+    <Compile Include="Domain\GasolineTankers\Jobs\UniversalFuelTankerJob.cs" />
+    <Compile Include="Domain\GasolineTankers\RefactoredFuelTanker.cs" />
     <Compile Include="Domain\Orders\ClientOrder.cs" />
     <Compile Include="Domain\FuelContainer.cs" />
     <Compile Include="Domain\GasolineTankers\FuelTanker.cs" />

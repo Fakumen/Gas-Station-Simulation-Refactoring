@@ -7,11 +7,12 @@ namespace GasStations
     public class FuelTankersProvider : ISimulationEntity
     {
         private readonly List<OrderedFuel> _totalOrdersInCurrentTick = new();
-        private readonly List<FuelTanker> _gasolineTankers = new();
+        private readonly List<FuelTanker> _fuelTankers = new();
 
         public int TankerVolumeCapacity { get; } = 6000;
-        public IReadOnlyList<FuelTanker> GasolineTankers => _gasolineTankers;
-        public IEnumerable<FuelTanker> FreeGasolineTankers => GasolineTankers.Where(t => !t.IsBusy && t.EmptyTanksCount > 0);
+        public IReadOnlyList<FuelTanker> FuelTankers => _fuelTankers;
+        public IEnumerable<FuelTanker> FreeFuelTankers 
+            => FuelTankers.Where(t => !t.IsBusy && t.EmptyTanksCount > 0);
 
         public void OrderFuelSection(GasStation orderedStation, FuelType fuelType)
         {
@@ -20,18 +21,18 @@ namespace GasStations
 
         public void OnSimulationTickPassed()
         {
-            OrderGasolineTankers();
-            HandleTickByGasolineTankers();
+            SendFuelTankersToStations();
+            HandleTickByFuelTankers();
         }
 
-        private void OrderGasolineTankers()
+        private void SendFuelTankersToStations()
         {
             var orderedFuel = _totalOrdersInCurrentTick.ToList();
 
             var leftOrderedFuel = orderedFuel.Count;
             foreach (var fuel in orderedFuel)
             {
-                var freeGasTanker = FreeGasolineTankers
+                var freeGasTanker = FreeFuelTankers
                     .Where(t => fuel.OwnerStation.StationType == StationType.Stationary || t.TanksCount < 3) //Мини АЗС не обслуживают 3х+ секционные бензовозы
                     .FirstOrDefault();
                 if (freeGasTanker == null) //Нет подходящих бензовозов
@@ -46,17 +47,17 @@ namespace GasStations
                     else if (fuel.OwnerStation.StationType == StationType.Mini)
                         tanksCount = 2;
                     leftOrderedFuel -= tanksCount;
-                    _gasolineTankers.Add(new FuelTanker(tanksCount, TankerVolumeCapacity));
+                    _fuelTankers.Add(new FuelTanker(tanksCount, TankerVolumeCapacity));
                 }
-                FreeGasolineTankers.First().OrderFuel(fuel.OwnerStation, fuel.FuelType);
+                FreeFuelTankers.First().LoadOrderedFuel(fuel);
             }
 
             _totalOrdersInCurrentTick.Clear();
         }
 
-        private void HandleTickByGasolineTankers()
+        private void HandleTickByFuelTankers()
         {
-            foreach (var gasTanker in GasolineTankers)
+            foreach (var gasTanker in FuelTankers)
             {
                 gasTanker.OnSimulationTickPassed();
                 if (!gasTanker.IsBusy && gasTanker.LoadedFuel.Count > 0)
