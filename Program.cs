@@ -14,10 +14,10 @@ namespace GasStations
             var stationsNetwork = new GasStationSystem(tankersProvider, 14, 16);
             var simulation = new Simulation(stationsNetwork, tankersProvider, orderProvider);
 
-            var ordersStatistics = new OrdersAppearStatisticsGatherer(orderProvider);
-            var networkStatistics = new StationsNetworkStatisticsGatherer(stationsNetwork);
+            var statistics = new SimulationStatisticsGatherer(simulation);
+            IReportMaker reportMaker = new ReportMaker();
+            var trackedStations = stationsNetwork.GasStations.ToHashSet();
 
-            var trackedStations = networkStatistics.GasStations.ToHashSet();
             simulation.DayPassed += OnDayPassed;
 
             simulation.RunSimulation(24 * 60 * 10);
@@ -31,13 +31,7 @@ namespace GasStations
             void OnDayPassed()
             {
                 //Report display
-                ReportMaker.WriteDayTitle(simulation.PassedSimulationTicks);
-                ReportMaker.GSStationsDetailedReport(
-                    networkStatistics, s => trackedStations.Contains(s), ordersStatistics);
-                Console.WriteLine();
-                ReportMaker.GSClientsRevenueReport(networkStatistics, ordersStatistics);
-                ReportMaker.ClientOrdersAverageIntervalReport(ordersStatistics);
-                ReportMaker.TotalGasTankersReport(tankersProvider.GasolineTankers);//TODO: dependency from TankersManager
+                reportMaker.MakePerDayReport(statistics, s => trackedStations.Contains(s.StationModel));
 
                 //Input handling
                 Console.WriteLine("\n\tНажмите Enter, чтобы продолжить");
@@ -47,11 +41,11 @@ namespace GasStations
                     Console.Write("Station IDs to debug: ");
                     var idsInput = Console.ReadLine();
                     if (idsInput.ToLower() == "all")
-                        trackedStations = networkStatistics.GasStations.ToHashSet();
+                        trackedStations = stationsNetwork.GasStations.ToHashSet();
                     else
                     {
                         var ids = idsInput.Split().Select(s => int.Parse(s));
-                        var stations = networkStatistics.GasStations.ToList();
+                        var stations = stationsNetwork.GasStations.ToList();
                         trackedStations = ids.Select(i => stations[i - 1]).ToHashSet();
                     }
                 }

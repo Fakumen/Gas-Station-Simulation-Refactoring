@@ -5,9 +5,31 @@ using System.Linq;
 
 namespace GasStations
 {
-    public class ReportMaker
+    public class ReportMaker : IReportMaker
     {
-        public static void WriteDayTitle(long ticksPassed)
+        public void MakePerDayReport(SimulationStatisticsGatherer statistics)
+            => MakePerDayReport(statistics, s => true);
+
+        public void MakePerDayReport(
+            SimulationStatisticsGatherer statistics,
+            Predicate<StationStatisticsGatherer> stationDisplayPredicate)
+        {
+            WriteDayTitle(statistics.TrackingSimulation.PassedSimulationTicks);
+            ShowStationsDetailedStatistics(
+                statistics.StationsNetworkStatistics, 
+                stationDisplayPredicate,
+                statistics.OrdersAppearStatistics);
+            Console.WriteLine();
+            ShowStationsServiceResults(
+                statistics.StationsNetworkStatistics, 
+                statistics.OrdersAppearStatistics);
+            ShowAverageOrdersInterval(statistics.OrdersAppearStatistics);
+            //TODO: dependency from TankersManagerStatistics
+            ShowFuelTankersStatistics(
+                statistics.TrackingSimulation.FuelTankersProvider.GasolineTankers);
+        }
+
+        private static void WriteDayTitle(long ticksPassed)
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine("--------------------");
@@ -16,7 +38,7 @@ namespace GasStations
             Console.ForegroundColor = ConsoleColor.Gray;
         }
 
-        public static void ClientOrdersAverageIntervalReport(
+        private static void ShowAverageOrdersInterval(
             OrdersAppearStatisticsGatherer ordersStatistics)
         {
             var clientTypes = EnumExtensions.GetValues<ClientType>();
@@ -32,7 +54,7 @@ namespace GasStations
                 $"Для грузовиков: {avgOrderInterval[ClientType.Truck]}(минут).");
         }
 
-        public static void GSClientsRevenueReport(
+        private static void ShowStationsServiceResults(
             StationsNetworkStatisticsGatherer networkStatistics,
             OrdersAppearStatisticsGatherer ordersStatistics)
         {
@@ -61,7 +83,7 @@ namespace GasStations
                 $"Выручка на АЗС: {totalStationaryGSRevenue}(руб), на ААЗС: {totalMiniGSRevenue}(руб).");
         }
 
-        public static void GSStationsDetailedReport(
+        private static void ShowStationsDetailedStatistics(
             StationsNetworkStatisticsGatherer networkStatistics, 
             Predicate<StationStatisticsGatherer> stationDisplayPredicate,
             OrdersAppearStatisticsGatherer ordersStatistics)
@@ -99,7 +121,7 @@ namespace GasStations
             }
         }
 
-        public static void TotalGasTankersReport(IEnumerable<FuelTanker> tankers)
+        private static void ShowFuelTankersStatistics(IEnumerable<FuelTanker> tankers)
         {
             var tankersList = tankers.ToList();
             var tankers2 = tankersList.Where(t => t.TanksCount == 2).ToArray();

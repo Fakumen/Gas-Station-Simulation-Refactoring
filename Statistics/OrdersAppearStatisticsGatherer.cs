@@ -5,6 +5,7 @@ using System.Linq;
 namespace GasStations
 {
     //TODO: Return cashed statistics on request if nothing has changed since.
+    [Obsolete("Counts QUEUED orders, not appeared! Used to simulate old behaviour.")]
     public class OrdersAppearStatisticsGatherer
     {
         private readonly Dictionary<GasStation, List<ClientOrder>> _queuedOrders = new();

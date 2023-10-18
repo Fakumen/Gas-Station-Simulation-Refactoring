@@ -20,6 +20,9 @@ namespace GasStations
             _orderProvider = orderProvider;
         }
 
+        public GasStationSystem StationsNetwork => _stationsNetwork;
+        public FuelTankersProvider FuelTankersProvider => _fuelTankersProvider;
+        public OrderProvider OrderProvider => _orderProvider;
         public long PassedSimulationTicks { get; private set; }
 
         public event Action DayPassed;

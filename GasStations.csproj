@@ -62,7 +62,9 @@
     <Compile Include="Domain\GasolineTankers\OrderedFuel.cs" />
     <Compile Include="Domain\Stations\GasStationSystem.cs" />
     <Compile Include="Domain\ISimulationEntity.cs" />
+    <Compile Include="Statistics\IReportMaker.cs" />
     <Compile Include="Statistics\OrdersAppearStatisticsGatherer.cs" />
+    <Compile Include="Statistics\SimulationStatisticsGatherer.cs" />
     <Compile Include="Statistics\StationStatisticsGatherer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
