@@ -32,8 +32,23 @@ namespace GasStations
             : new();
 
         [Obsolete("Counts QUEUED orders, not appeared! Used to simulate old behaviour.")]
-        public IEnumerable<ClientOrder> GetQueuedOrdersByClientType(ClientType clientType)
-            => _queuedOrders.Values.SelectMany(o => o).Where(o => o.ClientType == clientType);
+        public ClientOrder[] GetQueuedOrdersByClientType(ClientType clientType)
+            => _queuedOrders.Values
+            .SelectMany(o => o)
+            .Where(o => o.ClientType == clientType)
+            .ToArray();
+
+        [Obsolete("Counts QUEUED orders, not appeared! Used to simulate old behaviour.")]
+        public float GetAverageOrdersIntervalByClientType(ClientType clientType)
+            => (float)GetOrdersAppearIntervalSumByClientType(clientType)
+            / GetQueuedOrdersCountByClientType(clientType);
+
+        [Obsolete("Counts QUEUED orders, not appeared! Used to simulate old behaviour.")]
+        public ClientOrder[] GetQueuedOrdersByStationType(StationType stationType)
+            => _queuedOrders
+            .Where(kv => kv.Key.StationType == stationType)
+            .SelectMany(kv => kv.Value)
+            .ToArray();
 
         private void OnOrderQueued(GasStation station, ClientOrder order)
         {

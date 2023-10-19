@@ -20,10 +20,23 @@ namespace GasStations
             }
         }
 
-        public IEnumerable<StationStatisticsGatherer> GasStations
-            => _trackingNetwork.GasStations.Select(s => _stationsStatistics[s]);
+        public StationStatisticsGatherer[] GasStations
+            => _trackingNetwork.GasStations
+            .Select(s => _stationsStatistics[s])
+            .ToArray();
+
+        public StationStatisticsGatherer[] GetStationsByType(StationType stationType)
+            => GasStations
+            .Where(s => s.StationType == stationType)
+            .ToArray();
 
         public StationStatisticsGatherer GetStatisticsForStation(GasStation station)
             => _stationsStatistics[station];
+
+        public float GetTotalRevenueByStationType(StationType stationType)
+            => GetStationsByType(stationType).Sum(s => s.StationRevenue);
+
+        public int GetTotalSuccessfullyServedOrdersByStationType(StationType stationType)
+            => GetStationsByType(stationType).Sum(s => s.SuccessfullyServedClients);
     }
 }

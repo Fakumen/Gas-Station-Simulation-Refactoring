@@ -66,6 +66,7 @@
     <Compile Include="Domain\Stations\GasStationSystem.cs" />
     <Compile Include="Domain\ISimulationEntity.cs" />
     <Compile Include="Infrastructure\MathExtensions.cs" />
+    <Compile Include="Infrastructure\ConsoleWriter.cs" />
     <Compile Include="Statistics\IReportMaker.cs" />
     <Compile Include="Statistics\OrdersAppearStatisticsGatherer.cs" />
     <Compile Include="Statistics\SimulationStatisticsGatherer.cs" />

@@ -19,7 +19,7 @@ namespace GasStations
                 statistics.StationsNetworkStatistics, 
                 stationDisplayPredicate,
                 statistics.OrdersAppearStatistics);
-            Console.WriteLine();
+            ConsoleWriter.WriteLine();
             ShowStationsServiceResults(
                 statistics.StationsNetworkStatistics, 
                 statistics.OrdersAppearStatistics);
@@ -31,11 +31,10 @@ namespace GasStations
 
         private static void WriteDayTitle(long ticksPassed)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("--------------------");
-            Console.WriteLine(
-                $"День {ticksPassed / (24 * 60)} закончился. Тактов(минут) прошло: {ticksPassed}.\n");
-            Console.ForegroundColor = ConsoleColor.Gray;
+            ConsoleWriter.WriteLine("--------------------", ConsoleColor.Red);
+            ConsoleWriter.WriteLine(
+                $"День {ticksPassed / (24 * 60)} закончился. Тактов(минут) прошло: {ticksPassed}.\n",
+                ConsoleColor.Red);
         }
 
         private static void ShowAverageOrdersInterval(
@@ -45,10 +44,9 @@ namespace GasStations
             var avgOrderInterval = clientTypes
                 .ToDictionary(
                 c => c, 
-                c => (float)ordersStatistics.GetOrdersAppearIntervalSumByClientType(c) 
-                / ordersStatistics.GetQueuedOrdersCountByClientType(c));
+                c => ordersStatistics.GetAverageOrdersIntervalByClientType(c));
             
-            Console.WriteLine(
+            ConsoleWriter.WriteLine(
                 $"Среднее время ожидания нового заказа: " +
                 $"Для автомобилей: {avgOrderInterval[ClientType.Car]}(минут). " +
                 $"Для грузовиков: {avgOrderInterval[ClientType.Truck]}(минут).");
@@ -58,29 +56,32 @@ namespace GasStations
             StationsNetworkStatisticsGatherer networkStatistics,
             OrdersAppearStatisticsGatherer ordersStatistics)
         {
-            var stationaryGS = networkStatistics.GasStations
-                .Where(s => s.StationType == StationType.Stationary)
-                .ToArray();
-            var miniGS = networkStatistics.GasStations
-                .Where(s => s.StationType == StationType.Mini)
-                .ToArray();
+            var stationTypes = EnumExtensions.GetValues<StationType>();
+            var stationStatistics = stationTypes
+                .ToDictionary(
+                s => s,
+                s => new 
+                { 
+                    SuccessfulOrders = networkStatistics.GetTotalSuccessfullyServedOrdersByStationType(s), 
+                    TotalOrders = ordersStatistics.GetQueuedOrdersByStationType(s).Length, 
+                    Revenue = networkStatistics.GetTotalRevenueByStationType(s)
+                });
 
-            var stationaryGSOrdersCount = stationaryGS
-                .Sum(s => ordersStatistics.GetQueuedOrdersByStation(s.StationModel).Count);
-            var totalStationaryGSRevenue = stationaryGS.Sum(s => s.StationRevenue);
-            var stationaryGSServedClients = stationaryGS.Sum(s => s.SuccessfullyServedClients);
+            var stationaryStatistics = stationStatistics[StationType.Stationary];
+            var miniStatistics = stationStatistics[StationType.Mini];
 
-            var miniGSTotalOrdersCount = miniGS
-                .Sum(s => ordersStatistics.GetQueuedOrdersByStation(s.StationModel).Count);
-            var totalMiniGSRevenue = miniGS.Sum(s => s.StationRevenue);
-            var miniGSServedClients = miniGS.Sum(s => s.SuccessfullyServedClients);
-
-            Console.WriteLine(
-                $"Обслуженных клиентов на АЗС: {stationaryGSServedClients}, на ААЗС: {miniGSServedClients}.");
-            Console.WriteLine(
-                $"Необслуженных клиентов: На АЗС: {stationaryGSOrdersCount - stationaryGSServedClients}, на ААЗС: {miniGSTotalOrdersCount - miniGSServedClients}.");
-            Console.WriteLine(
-                $"Выручка на АЗС: {totalStationaryGSRevenue}(руб), на ААЗС: {totalMiniGSRevenue}(руб).");
+            ConsoleWriter.WriteLine(
+                $"Обслуженных клиентов " +
+                $"на АЗС: {stationaryStatistics.SuccessfulOrders}, " +
+                $"на ААЗС: {miniStatistics.SuccessfulOrders}.");
+            ConsoleWriter.WriteLine(
+                $"Необслуженных клиентов: " +
+                $"На АЗС: {stationaryStatistics.TotalOrders - stationaryStatistics.SuccessfulOrders}, " +
+                $"на ААЗС: {miniStatistics.TotalOrders - miniStatistics.SuccessfulOrders}.");
+            ConsoleWriter.WriteLine(
+                $"Выручка " +
+                $"на АЗС: {stationaryStatistics.Revenue}(руб), " +
+                $"на ААЗС: {miniStatistics.Revenue}(руб).");
         }
 
         private static void ShowStationsDetailedStatistics(
@@ -95,45 +96,68 @@ namespace GasStations
                 if (!stationDisplayPredicate(station))
                     continue;
                 var stationName = $"АЗС {i + 1} ({station.StationType}):\n";
-                Console.ForegroundColor = ConsoleColor.Yellow;
+                var stationColor = ConsoleColor.Yellow;
                 if (station.StationType == StationType.Mini)
                 {
-                    stationName = "А" + stationName;
-                    Console.ForegroundColor = ConsoleColor.Magenta;
+                    stationName = $"А{stationName}";
+                    stationColor = ConsoleColor.Magenta;
                 }
-                Console.Write($" {stationName, -20}");
-                Console.ForegroundColor = ConsoleColor.Gray;
-                Console.Write($" \tКлиентов обслуженно: {station.SuccessfullyServedClients} " +
+                ConsoleWriter.Write($" {stationName, -20}", stationColor);
+
+                ConsoleWriter.Write($" \tКлиентов обслуженно: {station.SuccessfullyServedClients} " +
                     $"из {ordersStatistics.GetQueuedOrdersByStation(station.StationModel).Count};");
-                Console.Write($" \tВызовов бензовоза: {station.RefillRequestsCount};");
-                Console.Write($"\n\tТопливо:   ");
-                foreach (var f in station.AvailableFuel)
+
+                ConsoleWriter.Write($" \tВызовов бензовоза: {station.RefillRequestsCount};");
+
+                ConsoleWriter.Write($"\n\tТопливо:   ");
+                foreach (var fuelType in station.AvailableFuel.Keys)
                 {
-                    var container = f.Value;
-                    var fuelInfo = $"[\"{f.Key}\": {container.FilledVolume}{"(+" + container.ReservedVolume + ")"}]";
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.Write($"{fuelInfo, -22}");
-                    Console.ForegroundColor = ConsoleColor.Gray;
+                    var container = station.AvailableFuel[fuelType];
+                    var fuelInfo = $"[\"{fuelType}\": {container.FilledVolume}(+{container.ReservedVolume})]";
+                    ConsoleWriter.Write($"{fuelInfo,-22}", ConsoleColor.Green);
                     Console.Write($"(+{container.VolumeIncome}/-{container.VolumeConsumption})\t");
                 }
-                Console.Write($"\t{(station.IsWaitingForGasolineTanker ? "(Ожидает бензовоза)" : "")}");
-                Console.WriteLine();
+                if (station.IsWaitingForGasolineTanker)
+                    ConsoleWriter.Write($"\t(Ожидает бензовоза)");
+
+                ConsoleWriter.WriteLine();
             }
         }
 
         private static void ShowFuelTankersStatistics(IEnumerable<FuelTanker> tankers)
         {
             var tankersList = tankers.ToList();
-            var tankers2 = tankersList.Where(t => t.TanksCount == 2).ToArray();
-            var tankers3 = tankersList.Where(t => t.TanksCount == 3).ToArray();
-            var tankers2TotalDrivesCount = tankers2.Sum(t => t.DrivesCount);
-            var tankers3TotalDrivesCount = tankers3.Sum(t => t.DrivesCount);
-            var unusedTankers = tankersList.Count(t => !t.IsBusy && t.LoadedTanksCount == 0);
-            var unusedTankers2 = tankers2.Count(t => !t.IsBusy && t.LoadedTanksCount == 0);
-            var unusedTankers3 = tankers3.Count(t => !t.IsBusy && t.LoadedTanksCount == 0);
-            Console.WriteLine($"Бензовозов в парке: {tankersList.Count}. Двухсекционных: {tankers2.Count()}. Трехсекционных: {tankers3.Count()}.");
-            Console.WriteLine($"Незанятых в данный момент бензовозов: {unusedTankers}/{tankersList.Count}. Двухсекционных: {unusedTankers2}. Трехсекционных: {unusedTankers3}.");
-            Console.WriteLine($"Всего рейсов двухсекционных бензовозов: {tankers2TotalDrivesCount}, трехсекционных: {tankers3TotalDrivesCount}.");
+            var tankersByTanks = tankersList
+                .GroupBy(t => t.TanksCount)
+                .ToDictionary(g => g.Key, g => g.ToArray());
+            var necessaryKeys = new[] { 2, 3 };
+            foreach (var tanksCount in necessaryKeys)
+                if (!tankersByTanks.ContainsKey(tanksCount)) 
+                    tankersByTanks.Add(tanksCount, new FuelTanker[0]);
+
+            var tankersStatisticsByTanks = tankersByTanks
+                .ToDictionary(
+                kv => kv.Key, 
+                kv => new
+                {
+                    TotalCount = kv.Value.Length,
+                    DrivesCount = kv.Value.Sum(t => t.DrivesCount),
+                    UnusedCount = kv.Value.Count(t => !t.IsBusy && t.LoadedTanksCount == 0)
+                });
+
+            var unusedTankers = tankersStatisticsByTanks.Values.Sum(s => s.UnusedCount);
+            ConsoleWriter.WriteLine(
+                $"Бензовозов в парке: {tankersList.Count}. " +
+                $"Двухсекционных: {tankersStatisticsByTanks[2].TotalCount}. " +
+                $"Трехсекционных: {tankersStatisticsByTanks[3].TotalCount}.");
+            ConsoleWriter.WriteLine(
+                $"Незанятых в данный момент бензовозов: {unusedTankers}/{tankersList.Count}. " +
+                $"Двухсекционных: {tankersStatisticsByTanks[2].UnusedCount}. " +
+                $"Трехсекционных: {tankersStatisticsByTanks[3].UnusedCount}.");
+            ConsoleWriter.WriteLine(
+                $"Всего рейсов " +
+                $"двухсекционных бензовозов: {tankersStatisticsByTanks[2].DrivesCount}, " +
+                $"трехсекционных: {tankersStatisticsByTanks[3].DrivesCount}.");
         }
     }
 }

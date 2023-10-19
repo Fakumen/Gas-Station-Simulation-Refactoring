@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GasStations.Infrastructure;
+using System;
 using System.Linq;
 
 namespace GasStations
@@ -22,8 +23,7 @@ namespace GasStations
 
             simulation.RunSimulation(24 * 60 * 10);
 
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("\n Симуляция окончена.");
+            ConsoleWriter.WriteLine("\n Симуляция окончена.", ConsoleColor.Red);
 
             while (true)
                 Console.ReadLine();
@@ -34,11 +34,11 @@ namespace GasStations
                 reportMaker.MakePerDayReport(statistics, s => trackedStations.Contains(s.StationModel));
 
                 //Input handling
-                Console.WriteLine("\n\tНажмите Enter, чтобы продолжить");
+                ConsoleWriter.WriteLine("\n\tНажмите Enter, чтобы продолжить");
                 var input = Console.ReadLine();
                 if (input == "-debug stations")
                 {
-                    Console.Write("Station IDs to debug: ");
+                    ConsoleWriter.Write("Station IDs to debug: ");
                     var idsInput = Console.ReadLine();
                     if (idsInput.ToLower() == "all")
                         trackedStations = stationsNetwork.GasStations.ToHashSet();
