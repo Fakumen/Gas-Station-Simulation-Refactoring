@@ -21,7 +21,7 @@ namespace GasStations
 
         public GasStation StationModel => _trackingStation;
         public StationType StationType => _trackingStation.StationType;
-        public IReadOnlyDictionary<FuelType, FuelContainer> AvailableFuel => _trackingStation.AvailableFuel;
+        public IReadOnlyDictionary<FuelType, IReadOnlyFuelContainer> AvailableFuel => _trackingStation.AvailableFuel;
         public IReadOnlyList<ServedOrder> ServedOrders => _servedOrders;
 
         public int RefillRequestsCount { get; private set; }

@@ -14,7 +14,8 @@ namespace GasStations
         public int CriticalFuelLevel { get; }
         public int MinimalRefillVolume { get; }
         public StationType StationType { get; }
-        public IReadOnlyDictionary<FuelType, FuelContainer> AvailableFuel => _availableFuel;
+        public IReadOnlyDictionary<FuelType, IReadOnlyFuelContainer> AvailableFuel 
+            => _availableFuel.ToDictionary(kv => kv.Key, kv => (IReadOnlyFuelContainer)kv.Value);
 
         public bool IsWaitingForGasolineTanker => _availableFuel.Any(e => e.Value.ReservedVolume > 0);
 
@@ -56,10 +57,10 @@ namespace GasStations
 
         public ServedOrder ServeOrder(ClientOrder order)
         {
-            var requestedFuel = order.GetRequestedFuel(_availableFuel);
+            var requestedFuel = order.GetRequestedFuel(AvailableFuel);
             var providedVolume = Math.Min(
-                order.RequestedFuelVolume, _availableFuel[requestedFuel].CurrentVolume);
-            _availableFuel[requestedFuel].Take(providedVolume);
+                order.RequestedFuelVolume, _availableFuel[requestedFuel].FilledVolume);
+            _availableFuel[requestedFuel].Consume(providedVolume);
             CheckCriticalFuelLevel(requestedFuel);
             var servedOrder = new ServedOrder(order, providedVolume, _fuelPrices[requestedFuel]);
             OrderServed?.Invoke(this, servedOrder);
@@ -68,18 +69,18 @@ namespace GasStations
 
         private void CheckCriticalFuelLevel(FuelType fuelToCheck)
         {
-            if (_availableFuel[fuelToCheck].CurrentVolume <= CriticalFuelLevel)
+            if (_availableFuel[fuelToCheck].FilledVolume <= CriticalFuelLevel)
                 CheckRefillNecessity();
         }
 
         private void CheckRefillNecessity()
         {
-            if (_availableFuel.Any(e => e.Value.EmptyUnreservedSpace >= MinimalRefillVolume))
+            if (_availableFuel.Any(e => e.Value.EmptyUnreservedVolume >= MinimalRefillVolume))
             {
                 var fuelToRefill = new Dictionary<FuelType, int>();
                 foreach (var fuel in _availableFuel.Keys)
                 {
-                    var availableRefills = _availableFuel[fuel].EmptyUnreservedSpace / MinimalRefillVolume;
+                    var availableRefills = _availableFuel[fuel].EmptyUnreservedVolume / MinimalRefillVolume;
                     fuelToRefill.Add(fuel, MinimalRefillVolume * availableRefills);
                     _availableFuel[fuel].ReserveVolume(MinimalRefillVolume * availableRefills);
                 }

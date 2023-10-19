@@ -45,16 +45,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Domain\Fuel\IReadOnlyFuelContainer.cs" />
     <Compile Include="Domain\GasolineTankers\FuelTankersProvider.cs" />
     <Compile Include="Domain\GasolineTankers\SimulationJobs\ISimulationJob.cs" />
     <Compile Include="Domain\GasolineTankers\SimulationJobs\SimulationJob.cs" />
     <Compile Include="Domain\Orders\ClientOrder.cs" />
-    <Compile Include="Domain\FuelContainer.cs" />
+    <Compile Include="Domain\Fuel\FuelContainer.cs" />
     <Compile Include="Domain\GasolineTankers\FuelTanker.cs" />
     <Compile Include="Domain\Orders\OrderProvider.cs" />
     <Compile Include="Domain\Simulation.cs" />
     <Compile Include="Domain\Stations\GasStation.cs" />
-    <Compile Include="Domain\FuelType.cs" />
+    <Compile Include="Domain\Fuel\FuelType.cs" />
     <Compile Include="Domain\Stations\StationType.cs" />
     <Compile Include="Infrastructure\EnumerableExtensions.cs" />
     <Compile Include="Infrastructure\EnumExtensions.cs" />
