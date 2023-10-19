@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GasStations.Infrastructure;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -21,35 +22,32 @@ namespace GasStations
 
         public void OnSimulationTickPassed()
         {
-            SendFuelTankersToStations();
+            DistributeFuelToTankers();
             HandleTickByFuelTankers();
         }
 
-        private void SendFuelTankersToStations()
+        private void DistributeFuelToTankers()
         {
-            var orderedFuel = _totalOrdersInCurrentTick.ToList();
-
-            var leftOrderedFuel = orderedFuel.Count;
-            foreach (var fuel in orderedFuel)
+            var leftOrderedFuel = _totalOrdersInCurrentTick.Count;
+            foreach (var fuel in _totalOrdersInCurrentTick)
             {
-                var freeGasTanker = FreeFuelTankers
-                    .Where(t => fuel.OwnerStation.StationType == StationType.Stationary || t.TanksCount < 3) //Мини АЗС не обслуживают 3х+ секционные бензовозы
-                    .FirstOrDefault();
-                if (freeGasTanker == null) //Нет подходящих бензовозов
+                //Мини АЗС не обслуживают 3х+ секционные бензовозы
+                var appropriateTankerForStation = FreeFuelTankers
+                    .FirstOrDefault(
+                    t => t.TanksCount < 3 || fuel.OwnerStation.StationType != StationType.Mini);
+                if (appropriateTankerForStation == null)
                 {
-                    var tanksCount = leftOrderedFuel;
-                    if (fuel.OwnerStation.StationType == StationType.Stationary)
+                    var tanksCount = fuel.OwnerStation.StationType switch
                     {
-                        tanksCount = Math.Min(tanksCount, 3);
-                        if (tanksCount < 2)
-                            tanksCount = 2;
-                    }
-                    else if (fuel.OwnerStation.StationType == StationType.Mini)
-                        tanksCount = 2;
+                        StationType.Stationary => MathExtensions.Clamp(leftOrderedFuel, 2, 3),
+                        StationType.Mini => 2,
+                        _ => throw new NotImplementedException(),
+                    };
                     leftOrderedFuel -= tanksCount;
-                    _fuelTankers.Add(new FuelTanker(tanksCount, TankerVolumeCapacity));
+                    appropriateTankerForStation = new FuelTanker(tanksCount, TankerVolumeCapacity);
+                    _fuelTankers.Add(appropriateTankerForStation);
                 }
-                FreeFuelTankers.First().LoadOrderedFuel(fuel);
+                appropriateTankerForStation.LoadOrderedFuel(fuel);
             }
 
             _totalOrdersInCurrentTick.Clear();
@@ -60,7 +58,7 @@ namespace GasStations
             foreach (var gasTanker in FuelTankers)
             {
                 gasTanker.OnSimulationTickPassed();
-                if (!gasTanker.IsBusy && gasTanker.LoadedFuel.Count > 0)
+                if (!gasTanker.IsBusy && gasTanker.LoadedTanksCount > 0)
                     gasTanker.StartDelivery();
             }
         }

@@ -2,11 +2,11 @@
 
 namespace GasStations
 {
-    public interface IFuelTankerJob : ISimulationEntity
+    public interface ISimulationJob : ISimulationEntity
     {
         public int TotalDuration { get; }
         public int LeftDuration { get; }
 
-        public event Action<IFuelTankerJob> JobFinished;
+        public event Action<ISimulationJob> JobFinished;
     }
 }

@@ -128,9 +128,9 @@ namespace GasStations
             var tankers3 = tankersList.Where(t => t.TanksCount == 3).ToArray();
             var tankers2TotalDrivesCount = tankers2.Sum(t => t.DrivesCount);
             var tankers3TotalDrivesCount = tankers3.Sum(t => t.DrivesCount);
-            var unusedTankers = tankersList.Count(t => !t.IsBusy && t.LoadedFuel.Count == 0);
-            var unusedTankers2 = tankers2.Count(t => !t.IsBusy && t.LoadedFuel.Count == 0);
-            var unusedTankers3 = tankers3.Count(t => !t.IsBusy && t.LoadedFuel.Count == 0);
+            var unusedTankers = tankersList.Count(t => !t.IsBusy && t.LoadedTanksCount == 0);
+            var unusedTankers2 = tankers2.Count(t => !t.IsBusy && t.LoadedTanksCount == 0);
+            var unusedTankers3 = tankers3.Count(t => !t.IsBusy && t.LoadedTanksCount == 0);
             Console.WriteLine($"Бензовозов в парке: {tankersList.Count}. Двухсекционных: {tankers2.Count()}. Трехсекционных: {tankers3.Count()}.");
             Console.WriteLine($"Незанятых в данный момент бензовозов: {unusedTankers}/{tankersList.Count}. Двухсекционных: {unusedTankers2}. Трехсекционных: {unusedTankers3}.");
             Console.WriteLine($"Всего рейсов двухсекционных бензовозов: {tankers2TotalDrivesCount}, трехсекционных: {tankers3TotalDrivesCount}.");

@@ -6,117 +6,95 @@ namespace GasStations
 {
     public class FuelTanker : ISimulationEntity
     {
+        private readonly Queue<ISimulationJob> _jobs = new();
+        private readonly HashSet<OrderedFuel> _loadedFuel = new();
         private GasStation _destinationStation;
 
-        public const int ReturnToBaseTime = 90;
-        public const int RefillTime = 40;
-        public int? ArrivalTime { get; private set; }
-        public int DrivesCount { get; private set; }
-        public readonly HashSet<OrderedFuel> LoadedFuel = new(); //Count = 2 or 3
-        public readonly int TanksCount;
-        public int EmptyTanksCount => TanksCount - LoadedFuel.Count;
-        public event Action<GasStation> Arrived;
-        public event Action<GasStation> Unloaded;
-        public event Action<FuelTanker> ReturnedToBase;
-
-        private int? ticksUntilArrival;
-        private int? ticksUntilUnload;
-        private int? ticksUntilReturnToBase;
-
-        public int TankCapacity { get; }
-        public bool IsBusy =>
-            ticksUntilArrival != null && ticksUntilArrival > 0
-            || ticksUntilUnload != null && ticksUntilUnload > 0
-            || ticksUntilReturnToBase != null && ticksUntilReturnToBase > 0;
+        public const int ReturnToBaseTime = 90 - 1; //"-1" to simulate old (incorrect) behaviour
+        public const int RefillTime = 40 - 1; //"-1" to simulate old (incorrect) behaviour
 
         public FuelTanker(int tanksCount, int tankCapacity)
         {
-            if (tanksCount != 2 && tanksCount != 3) throw new ArgumentException();
             TanksCount = tanksCount;
             TankCapacity = tankCapacity;
         }
 
+        public int TankCapacity { get; }
+        public int TanksCount { get; }
+        public int LoadedTanksCount => _loadedFuel.Count;
+        public int EmptyTanksCount => TanksCount - LoadedTanksCount;
+        public bool IsBusy => _jobs.Count > 0;
+        public int DrivesCount { get; private set; }//Statistics
+
+        public event Action<FuelTanker> DeliveryFinished;
+
         public void StartDelivery()
         {
-            if (IsBusy) throw new InvalidOperationException();
-            DriveToStation(LoadedFuel.First().OwnerStation);
+            if (IsBusy || LoadedTanksCount == 0) 
+                throw new InvalidOperationException();
+            DriveToStation(_loadedFuel.First().OwnerStation);
         }
 
-        public bool LoadOrderedFuel(OrderedFuel orderedFuel)
+        public void LoadOrderedFuel(OrderedFuel orderedFuel)
         {
-            if (!IsBusy && EmptyTanksCount > 0)
-            {
-                LoadedFuel.Add(orderedFuel);
-                return true;
-            }
-            return false;
+            if (IsBusy || EmptyTanksCount == 0) 
+                throw new InvalidProgramException();
+            _loadedFuel.Add(orderedFuel);
         }
 
         private void DriveToStation(GasStation station)
         {
-            if (IsBusy) throw new InvalidOperationException();
             _destinationStation = station;
-            ticksUntilArrival = ArrivalTime = Simulation.Randomizer.Next(60, 121);
-            Arrived += OnArrivedToStation;
+            var driveToStationJob = new SimulationJob(Simulation.Randomizer.Next(60, 121));
+            driveToStationJob.JobFinished += OnArrivedToStation;
+            _jobs.Enqueue(driveToStationJob);
         }
 
-        private void OnArrivedToStation(GasStation station)
+        private void OnArrivedToStation(ISimulationJob driveToStationJob)
         {
-            if (IsBusy) throw new InvalidOperationException();
-            ticksUntilUnload = RefillTime;
-            Unloaded += OnRefillFinished;
-            Arrived -= OnArrivedToStation;
+            if (driveToStationJob != _jobs.Peek())
+                throw new InvalidProgramException("Passed job is not current queued job");
+
+            driveToStationJob.JobFinished -= OnArrivedToStation;
+            var refillJob = new SimulationJob(RefillTime);
+            refillJob.JobFinished += OnRefillFinished;
+            _jobs.Enqueue(refillJob);
+            _jobs.Dequeue();
         }
 
-        private void OnRefillFinished(GasStation refilledStation)
+        private void OnRefillFinished(ISimulationJob refillJob)
         {
-            if (IsBusy) throw new InvalidOperationException();
-            if (ticksUntilUnload == null) throw new InvalidOperationException();
+            if (refillJob != _jobs.Peek())
+                throw new InvalidProgramException("Passed job is not current queued job");
             var owner = _destinationStation;
-            var fuelForThisStation = LoadedFuel.Where(o => o.OwnerStation == owner).ToArray();
+            var fuelForThisStation = _loadedFuel.Where(o => o.OwnerStation == owner).ToArray();
             if (fuelForThisStation.Length == 0)
                 throw new InvalidProgramException();
 
-            Unloaded -= OnRefillFinished;
+            refillJob.JobFinished -= OnRefillFinished;
             foreach (var fuel in fuelForThisStation)
             {
                 owner.Refill(fuel.FuelType, TankCapacity);
-                LoadedFuel.Remove(fuel);
+                _loadedFuel.Remove(fuel);
             }
             _destinationStation = null;
 
-            if (LoadedFuel.Count > 0)
-                DriveToStation(LoadedFuel.First().OwnerStation);
+            if (LoadedTanksCount > 0)
+                DriveToStation(_loadedFuel.First().OwnerStation);
             else
             {
-                ticksUntilReturnToBase = ReturnToBaseTime;
+                var returnToBaseJob = new SimulationJob(ReturnToBaseTime);
+                returnToBaseJob.JobFinished += j => _jobs.Dequeue();
+                _jobs.Enqueue(returnToBaseJob);
                 DrivesCount++;
             }
+            _jobs.Dequeue();
         }
 
         public void OnSimulationTickPassed()
         {
-            //TODO: Simulate behaviour in refactored version
-            //Changes behaviour if events fire only after ALL ticks decremented
-            //Ticks from different jobs can spend it one tick pass!! That is incorrect behaviour.
-            ticksUntilArrival--;
-            if (ticksUntilArrival == 0)
-            {
-                Arrived?.Invoke(_destinationStation);
-                ticksUntilArrival = null;
-            }
-            ticksUntilUnload--;
-            if (ticksUntilUnload == 0)
-            {
-                Unloaded?.Invoke(_destinationStation);
-                ticksUntilUnload = null;
-            }
-            ticksUntilReturnToBase--;
-            if (ticksUntilReturnToBase == 0)
-            {
-                ReturnedToBase?.Invoke(this);
-                ticksUntilReturnToBase = null;
-            }
+            if (_jobs.Count > 0)
+                _jobs.Peek().OnSimulationTickPassed();
         }
     }
 }

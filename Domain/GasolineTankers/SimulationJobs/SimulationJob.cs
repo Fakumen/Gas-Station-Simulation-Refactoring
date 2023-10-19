@@ -2,9 +2,9 @@
 
 namespace GasStations
 {
-    public class UniversalFuelTankerJob : IFuelTankerJob
+    public class SimulationJob : ISimulationJob
     {
-        public UniversalFuelTankerJob(int durationInTicks)
+        public SimulationJob(int durationInTicks)
         {
             if (durationInTicks <= 0)
                 throw new ArgumentOutOfRangeException(nameof(durationInTicks));
@@ -15,7 +15,7 @@ namespace GasStations
         public int TotalDuration { get; }
         public int LeftDuration { get; private set; }
 
-        public event Action<IFuelTankerJob> JobFinished;
+        public event Action<ISimulationJob> JobFinished;
 
         public void OnSimulationTickPassed()
         {
