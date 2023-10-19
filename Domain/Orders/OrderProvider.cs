@@ -53,7 +53,7 @@ namespace GasStations
                         (r, f) => f.Keys
                         .Where(f => f == FuelType.Petrol92 || f == FuelType.Diesel)
                         .TakeRandom(r)),
-                    _ => throw new NotImplementedException(),
+                    _ => throw new NotImplementedException("No order parameters for such ClientType"),
                 };
                 AddOrderInQueue(station, newOrder);
             }

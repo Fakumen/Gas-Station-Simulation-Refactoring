@@ -14,7 +14,6 @@ namespace GasStations
             if (trackingStation == null)
                 throw new ArgumentNullException(nameof(trackingStation));
             _trackingStation = trackingStation;
-            //_trackingStation.OrderQueued += OnOrderQueued;
             _trackingStation.OrderServed += OnOrderServed;
             _trackingStation.FuelVolumesRefillRequested += OnRefillRequested;
         }

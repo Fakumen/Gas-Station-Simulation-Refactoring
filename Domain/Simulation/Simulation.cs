@@ -47,6 +47,7 @@ namespace GasStations
                 station.OnSimulationTickPassed();
                 _orderProvider.OnSimulationTickPassedForStation(station);//Simulates old behaviour
             }
+            //TODO: Replace with:
             //_orderProvider.OnSimulationTickPassed();
             _fuelTankersProvider.OnSimulationTickPassed();
             PassedSimulationTicks++;

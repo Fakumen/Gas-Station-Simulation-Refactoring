@@ -46,34 +46,33 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Domain\Fuel\IReadOnlyFuelContainer.cs" />
-    <Compile Include="Domain\GasolineTankers\FuelTankersProvider.cs" />
-    <Compile Include="Domain\GasolineTankers\SimulationJobs\ISimulationJob.cs" />
-    <Compile Include="Domain\GasolineTankers\SimulationJobs\SimulationJob.cs" />
+    <Compile Include="Domain\FuelTankers\FuelTankersProvider.cs" />
+    <Compile Include="Domain\Simulation\SimulationJobs\ISimulationJob.cs" />
+    <Compile Include="Domain\Simulation\SimulationJobs\SimulationJob.cs" />
     <Compile Include="Domain\Orders\ClientOrder.cs" />
     <Compile Include="Domain\Fuel\FuelContainer.cs" />
-    <Compile Include="Domain\GasolineTankers\FuelTanker.cs" />
+    <Compile Include="Domain\FuelTankers\FuelTanker.cs" />
     <Compile Include="Domain\Orders\OrderProvider.cs" />
-    <Compile Include="Domain\Simulation.cs" />
+    <Compile Include="Domain\Simulation\Simulation.cs" />
     <Compile Include="Domain\Stations\GasStation.cs" />
     <Compile Include="Domain\Fuel\FuelType.cs" />
     <Compile Include="Domain\Stations\StationType.cs" />
     <Compile Include="Infrastructure\EnumerableExtensions.cs" />
     <Compile Include="Infrastructure\EnumExtensions.cs" />
-    <Compile Include="Infrastructure\EnumMask.cs" />
     <Compile Include="Domain\Orders\ClientType.cs" />
     <Compile Include="Domain\Orders\ServedOrder.cs" />
-    <Compile Include="Domain\GasolineTankers\OrderedFuel.cs" />
+    <Compile Include="Domain\FuelTankers\OrderedFuel.cs" />
     <Compile Include="Domain\Stations\GasStationSystem.cs" />
-    <Compile Include="Domain\ISimulationEntity.cs" />
+    <Compile Include="Domain\Simulation\ISimulationEntity.cs" />
     <Compile Include="Infrastructure\MathExtensions.cs" />
     <Compile Include="Infrastructure\ConsoleWriter.cs" />
-    <Compile Include="Statistics\IReportMaker.cs" />
+    <Compile Include="ReportMaking\IReportMaker.cs" />
     <Compile Include="Statistics\OrdersAppearStatisticsGatherer.cs" />
     <Compile Include="Statistics\SimulationStatisticsGatherer.cs" />
     <Compile Include="Statistics\StationStatisticsGatherer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Statistics\ReportMaker.cs" />
+    <Compile Include="ReportMaking\ReportMaker.cs" />
     <Compile Include="Statistics\StationsNetworkStatisticsGatherer.cs" />
   </ItemGroup>
   <ItemGroup>
