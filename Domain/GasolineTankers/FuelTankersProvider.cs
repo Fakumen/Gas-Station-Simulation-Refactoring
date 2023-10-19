@@ -47,7 +47,11 @@ namespace GasStations
                     appropriateTankerForStation = new FuelTanker(tanksCount, TankerVolumeCapacity);
                     _fuelTankers.Add(appropriateTankerForStation);
                 }
-                appropriateTankerForStation.LoadOrderedFuel(fuel);
+                //TODO: Simulates old (incorrect) behaviour
+                //First free tanker is not last added and may not be allowed for the station
+                FreeFuelTankers.First().LoadOrderedFuel(fuel);
+                //TODO: Replace with:
+                //appropriateTankerForStation.LoadOrderedFuel(fuel);
             }
 
             _totalOrdersInCurrentTick.Clear();
