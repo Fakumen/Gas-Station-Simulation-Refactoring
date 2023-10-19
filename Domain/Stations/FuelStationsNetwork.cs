@@ -3,11 +3,11 @@ using System.Linq;
 
 namespace GasStations
 {
-    public class GasStationSystem
+    public class FuelStationsNetwork
     {
         private FuelTankersProvider _fuelTankersProvider;
 
-        private readonly List<GasStation> _stations = new();
+        private readonly List<FuelStation> _stations = new();
         private readonly Dictionary<FuelType, float> _fuelPrices = new()
         {
             { FuelType.Petrol92, 45.6f },
@@ -16,7 +16,7 @@ namespace GasStations
             { FuelType.Diesel, 51.5f }
         };
 
-        public GasStationSystem(
+        public FuelStationsNetwork(
             FuelTankersProvider fuelTankersProvider, 
             int stationaryStationsCount, int miniStationsCount)
         {
@@ -30,7 +30,7 @@ namespace GasStations
                     { FuelType.Petrol98, 16000 },
                     { FuelType.Diesel, 30000 }
                 };
-                var station = new GasStation(
+                var station = new FuelStation(
                     StationType.Stationary, _fuelPrices, avFuel, fuelTankersProvider.TankerVolumeCapacity);
                 _stations.Add(station);
                 station.FuelVolumesRefillRequested += OrderFuelToStation;
@@ -43,17 +43,17 @@ namespace GasStations
                     { FuelType.Petrol92, 16000 },
                     { FuelType.Petrol95, 15000 }
                 };
-                var station = new GasStation(
+                var station = new FuelStation(
                     StationType.Mini, _fuelPrices, avFuel, fuelTankersProvider.TankerVolumeCapacity);
                 _stations.Add(station);
                 station.FuelVolumesRefillRequested += OrderFuelToStation;
             }
         }
 
-        public IReadOnlyList<GasStation> GasStations => _stations;
+        public IReadOnlyList<FuelStation> Stations => _stations;
 
         private void OrderFuelToStation(
-            GasStation station, IReadOnlyDictionary<FuelType, int> fuelVolumes)
+            FuelStation station, IReadOnlyDictionary<FuelType, int> fuelVolumes)
         {
             var minimalRefillVolume = _fuelTankersProvider.TankerVolumeCapacity;
             if (fuelVolumes.Any(s => s.Value < 0 || s.Value % minimalRefillVolume != 0))

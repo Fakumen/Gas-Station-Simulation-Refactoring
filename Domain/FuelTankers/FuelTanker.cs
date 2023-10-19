@@ -7,8 +7,8 @@ namespace GasStations
     public class FuelTanker : ISimulationEntity
     {
         private readonly Queue<ISimulationJob> _jobs = new();
-        private readonly HashSet<OrderedFuel> _loadedFuel = new();
-        private GasStation _destinationStation;
+        private readonly HashSet<OrderedFuelSection> _loadedFuel = new();
+        private FuelStation _destinationStation;
 
         public const int ReturnToBaseTime = 90 - 1; //"-1" to simulate old (incorrect) behaviour
         public const int RefillTime = 40 - 1; //"-1" to simulate old (incorrect) behaviour
@@ -32,17 +32,17 @@ namespace GasStations
         {
             if (IsBusy || LoadedTanksCount == 0) 
                 throw new InvalidOperationException();
-            DriveToStation(_loadedFuel.First().OwnerStation);
+            DriveToStation(_loadedFuel.First().OrderedStation);
         }
 
-        public void LoadOrderedFuel(OrderedFuel orderedFuel)
+        public void LoadOrderedFuel(OrderedFuelSection orderedFuel)
         {
             if (IsBusy || EmptyTanksCount == 0) 
                 throw new InvalidProgramException();
             _loadedFuel.Add(orderedFuel);
         }
 
-        private void DriveToStation(GasStation station)
+        private void DriveToStation(FuelStation station)
         {
             _destinationStation = station;
             var driveToStationJob = new SimulationJob(Simulation.Randomizer.Next(60, 121));
@@ -67,7 +67,7 @@ namespace GasStations
             if (refillJob != _jobs.Peek())
                 throw new InvalidProgramException("Passed job is not current queued job");
             var owner = _destinationStation;
-            var fuelForThisStation = _loadedFuel.Where(o => o.OwnerStation == owner).ToArray();
+            var fuelForThisStation = _loadedFuel.Where(o => o.OrderedStation == owner).ToArray();
             if (fuelForThisStation.Length == 0)
                 throw new InvalidProgramException();
 
@@ -80,7 +80,7 @@ namespace GasStations
             _destinationStation = null;
 
             if (LoadedTanksCount > 0)
-                DriveToStation(_loadedFuel.First().OwnerStation);
+                DriveToStation(_loadedFuel.First().OrderedStation);
             else
             {
                 var returnToBaseJob = new SimulationJob(ReturnToBaseTime);

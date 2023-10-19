@@ -7,7 +7,7 @@ namespace GasStations
 {
     public class FuelTankersProvider : ISimulationEntity
     {
-        private readonly List<OrderedFuel> _totalOrdersInCurrentTick = new();
+        private readonly List<OrderedFuelSection> _totalOrdersInCurrentTick = new();
         private readonly List<FuelTanker> _fuelTankers = new();
 
         public int TankerVolumeCapacity { get; } = 6000;
@@ -15,9 +15,9 @@ namespace GasStations
         public IEnumerable<FuelTanker> FreeFuelTankers 
             => FuelTankers.Where(t => !t.IsBusy && t.EmptyTanksCount > 0);
 
-        public void OrderFuelSection(GasStation orderedStation, FuelType fuelType)
+        public void OrderFuelSection(FuelStation orderedStation, FuelType fuelType)
         {
-            _totalOrdersInCurrentTick.Add(new OrderedFuel(orderedStation, fuelType));
+            _totalOrdersInCurrentTick.Add(new OrderedFuelSection(orderedStation, fuelType));
         }
 
         public void OnSimulationTickPassed()
@@ -34,10 +34,10 @@ namespace GasStations
                 //Мини АЗС не обслуживают 3х+ секционные бензовозы
                 var appropriateTankerForStation = FreeFuelTankers
                     .FirstOrDefault(
-                    t => t.TanksCount < 3 || fuel.OwnerStation.StationType != StationType.Mini);
+                    t => t.TanksCount < 3 || fuel.OrderedStation.StationType != StationType.Mini);
                 if (appropriateTankerForStation == null)
                 {
-                    var tanksCount = fuel.OwnerStation.StationType switch
+                    var tanksCount = fuel.OrderedStation.StationType switch
                     {
                         StationType.Stationary => MathExtensions.Clamp(leftOrderedFuel, 2, 3),
                         StationType.Mini => 2,
@@ -59,11 +59,11 @@ namespace GasStations
 
         private void HandleTickByFuelTankers()
         {
-            foreach (var gasTanker in FuelTankers)
+            foreach (var tanker in FuelTankers)
             {
-                gasTanker.OnSimulationTickPassed();
-                if (!gasTanker.IsBusy && gasTanker.LoadedTanksCount > 0)
-                    gasTanker.StartDelivery();
+                tanker.OnSimulationTickPassed();
+                if (!tanker.IsBusy && tanker.LoadedTanksCount > 0)
+                    tanker.StartDelivery();
             }
         }
     }

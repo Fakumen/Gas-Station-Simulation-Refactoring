@@ -89,7 +89,7 @@ namespace GasStations
             Predicate<StationStatisticsGatherer> stationDisplayPredicate,
             OrdersAppearStatisticsGatherer ordersStatistics)
         {
-            var stations = networkStatistics.GasStations.ToList();
+            var stations = networkStatistics.Stations.ToList();
             for (var i = 0; i < stations.Count; i++)
             {
                 var station = stations[i];
@@ -117,7 +117,7 @@ namespace GasStations
                     ConsoleWriter.Write($"{fuelInfo,-22}", ConsoleColor.Green);
                     Console.Write($"(+{container.VolumeIncome}/-{container.VolumeConsumption})\t");
                 }
-                if (station.IsWaitingForGasolineTanker)
+                if (station.HasReservedFuelVolumes)
                     ConsoleWriter.Write($"\t(Ожидает бензовоза)");
 
                 ConsoleWriter.WriteLine();

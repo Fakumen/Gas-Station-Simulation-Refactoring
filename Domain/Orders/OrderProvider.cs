@@ -7,9 +7,9 @@ namespace GasStations
 {
     public class OrderProvider : ISimulationEntity
     {
-        private Dictionary<GasStation, Dictionary<ClientType, ClientOrder>> _stationOrders = new();
+        private Dictionary<FuelStation, Dictionary<ClientType, ClientOrder>> _stationOrders = new();
 
-        public event Action<GasStation, ClientOrder> OrderQueued;
+        public event Action<FuelStation, ClientOrder> OrderQueued;
 
         public void OnSimulationTickPassed()
         {
@@ -22,7 +22,7 @@ namespace GasStations
         [Obsolete(
             "Used to simulate behaviour of previous versions. " +
             "Usage of " + nameof(OnSimulationTickPassed) + " is recommended instead.")]
-        public void OnSimulationTickPassedForStation(GasStation station)
+        public void OnSimulationTickPassedForStation(FuelStation station)
         {
             foreach (var order in _stationOrders[station].Values.ToArray())
             {
@@ -30,7 +30,7 @@ namespace GasStations
             }
         }
 
-        public void ProvideOrdersToStation(GasStation station)
+        public void ProvideOrdersToStation(FuelStation station)
         {
             if (!_stationOrders.ContainsKey(station))
                 _stationOrders.Add(station, new());
@@ -59,7 +59,7 @@ namespace GasStations
             }
         }
 
-        private void AddOrderInQueue(GasStation station, ClientOrder order)
+        private void AddOrderInQueue(FuelStation station, ClientOrder order)
         {
             var client = order.ClientType;
             var stationOrders = _stationOrders[station];

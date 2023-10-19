@@ -8,7 +8,7 @@ namespace GasStations
     [Obsolete("Counts QUEUED orders, not appeared! Used to simulate old behaviour.")]
     public class OrdersAppearStatisticsGatherer
     {
-        private readonly Dictionary<GasStation, List<ClientOrder>> _queuedOrders = new();
+        private readonly Dictionary<FuelStation, List<ClientOrder>> _queuedOrders = new();
 
         public OrdersAppearStatisticsGatherer(OrderProvider orderProvider)
         {
@@ -26,7 +26,7 @@ namespace GasStations
             => GetQueuedOrdersByClientType(clientType).Count();
 
         [Obsolete("Counts QUEUED orders, not appeared! Used to simulate old behaviour.")]
-        public IReadOnlyList<ClientOrder> GetQueuedOrdersByStation(GasStation station)
+        public IReadOnlyList<ClientOrder> GetQueuedOrdersByStation(FuelStation station)
             => _queuedOrders.ContainsKey(station)
             ? _queuedOrders[station]
             : new();
@@ -50,7 +50,7 @@ namespace GasStations
             .SelectMany(kv => kv.Value)
             .ToArray();
 
-        private void OnOrderQueued(GasStation station, ClientOrder order)
+        private void OnOrderQueued(FuelStation station, ClientOrder order)
         {
             if (!_queuedOrders.ContainsKey(station))
                 _queuedOrders.Add(station, new());

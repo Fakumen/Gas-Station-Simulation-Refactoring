@@ -12,12 +12,12 @@ namespace GasStations
 
             var orderProvider = new OrderProvider();
             var tankersProvider = new FuelTankersProvider();
-            var stationsNetwork = new GasStationSystem(tankersProvider, 14, 16);
+            var stationsNetwork = new FuelStationsNetwork(tankersProvider, 14, 16);
             var simulation = new Simulation(stationsNetwork, tankersProvider, orderProvider);
 
             var statistics = new SimulationStatisticsGatherer(simulation);
             IReportMaker reportMaker = new ReportMaker();
-            var trackedStations = stationsNetwork.GasStations.ToHashSet();
+            var trackedStations = stationsNetwork.Stations.ToHashSet();
 
             simulation.DayPassed += OnDayPassed;
 
@@ -41,11 +41,11 @@ namespace GasStations
                     ConsoleWriter.Write("Station IDs to debug: ");
                     var idsInput = Console.ReadLine();
                     if (idsInput.ToLower() == "all")
-                        trackedStations = stationsNetwork.GasStations.ToHashSet();
+                        trackedStations = stationsNetwork.Stations.ToHashSet();
                     else
                     {
                         var ids = idsInput.Split().Select(s => int.Parse(s));
-                        var stations = stationsNetwork.GasStations.ToList();
+                        var stations = stationsNetwork.Stations.ToList();
                         trackedStations = ids.Select(i => stations[i - 1]).ToHashSet();
                     }
                 }

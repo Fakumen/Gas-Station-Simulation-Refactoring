@@ -6,12 +6,12 @@ namespace GasStations
     {
         public readonly static Random Randomizer = new(0);
 
-        private readonly GasStationSystem _stationsNetwork;
+        private readonly FuelStationsNetwork _stationsNetwork;
         private readonly FuelTankersProvider _fuelTankersProvider;
         private readonly OrderProvider _orderProvider;
 
         public Simulation(
-            GasStationSystem stationsNetwork,
+            FuelStationsNetwork stationsNetwork,
             FuelTankersProvider fuelTankersProvider,
             OrderProvider orderProvider)
         {
@@ -20,7 +20,7 @@ namespace GasStations
             _orderProvider = orderProvider;
         }
 
-        public GasStationSystem StationsNetwork => _stationsNetwork;
+        public FuelStationsNetwork StationsNetwork => _stationsNetwork;
         public FuelTankersProvider FuelTankersProvider => _fuelTankersProvider;
         public OrderProvider OrderProvider => _orderProvider;
         public long PassedSimulationTicks { get; private set; }
@@ -41,7 +41,7 @@ namespace GasStations
 
         private void HandleOneSimulationTick()
         {
-            foreach (var station in _stationsNetwork.GasStations)
+            foreach (var station in _stationsNetwork.Stations)
             {
                 _orderProvider.ProvideOrdersToStation(station);
                 station.OnSimulationTickPassed();

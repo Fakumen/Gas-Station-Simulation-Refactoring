@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace GasStations
 {
-    public class GasStation : ISimulationEntity
+    public class FuelStation : ISimulationEntity
     {
         private readonly Dictionary<FuelType, float> _fuelPrices;
         private readonly Dictionary<FuelType, FuelContainer> _availableFuel;
@@ -17,12 +17,12 @@ namespace GasStations
         public IReadOnlyDictionary<FuelType, IReadOnlyFuelContainer> AvailableFuel 
             => _availableFuel.ToDictionary(kv => kv.Key, kv => (IReadOnlyFuelContainer)kv.Value);
 
-        public bool IsWaitingForGasolineTanker => _availableFuel.Any(e => e.Value.ReservedVolume > 0);
+        public bool HasReservedFuelVolumes => _availableFuel.Any(e => e.Value.ReservedVolume > 0);
 
-        public event Action<GasStation, ServedOrder> OrderServed;
-        public event Action<GasStation, IReadOnlyDictionary<FuelType, int>> FuelVolumesRefillRequested;
+        public event Action<FuelStation, ServedOrder> OrderServed;
+        public event Action<FuelStation, IReadOnlyDictionary<FuelType, int>> FuelVolumesRefillRequested;
 
-        public GasStation(
+        public FuelStation(
             StationType stationType, 
             IReadOnlyDictionary<FuelType, float> fuelPrices,
             IReadOnlyDictionary<FuelType, int> fuelSectionVolumes, 
