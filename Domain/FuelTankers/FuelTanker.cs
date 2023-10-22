@@ -6,6 +6,7 @@ namespace GasStations
 {
     public class FuelTanker : ISimulationEntity
     {
+        private readonly Queue<FuelStation> _stationsToVisit = new();
         private readonly Queue<ISimulationJob> _jobs = new();
         private readonly HashSet<OrderedFuelSection> _loadedFuel = new();
         private FuelStation _destinationStation;
@@ -26,13 +27,13 @@ namespace GasStations
         public bool IsBusy => _jobs.Count > 0;
         public int DrivesCount { get; private set; }//Statistics
 
-        public event Action<FuelTanker> DeliveryFinished;
+        //public event Action<FuelTanker> DeliveryFinished;
 
         public void StartDelivery()
         {
             if (IsBusy || LoadedTanksCount == 0) 
                 throw new InvalidOperationException();
-            DriveToStation(_loadedFuel.First().OrderedStation);
+            DriveToStation(_stationsToVisit.Dequeue());
         }
 
         public void LoadOrderedFuel(OrderedFuelSection orderedFuel)
@@ -40,6 +41,8 @@ namespace GasStations
             if (IsBusy || EmptyTanksCount == 0) 
                 throw new InvalidProgramException();
             _loadedFuel.Add(orderedFuel);
+            if (!_stationsToVisit.Contains(orderedFuel.OrderedStation))
+                _stationsToVisit.Enqueue(orderedFuel.OrderedStation);
         }
 
         private void DriveToStation(FuelStation station)
@@ -79,14 +82,15 @@ namespace GasStations
             }
             _destinationStation = null;
 
-            if (LoadedTanksCount > 0)
-                DriveToStation(_loadedFuel.First().OrderedStation);
+            if (_stationsToVisit.Count > 0)
+                DriveToStation(_stationsToVisit.Dequeue());
             else
             {
                 var returnToBaseJob = new SimulationJob(ReturnToBaseTime);
                 returnToBaseJob.JobFinished += j => _jobs.Dequeue();
                 _jobs.Enqueue(returnToBaseJob);
                 DrivesCount++;
+                _stationsToVisit.Clear();
             }
             _jobs.Dequeue();
         }
